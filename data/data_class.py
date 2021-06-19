@@ -1,11 +1,11 @@
 import numpy as np
-from utils import normalize_normal_map, world_to_object, boundary_excluded_mask, curl_of_normal_map, generate_dis_mesh
+from utils import normalize_normal_map, camera_to_object, curl_of_normal_map
 from copy import copy
 import cv2
-from utils import angular_error_map, hide_all_plot, construct_facet_for_depth
 import os
 import pyvista as pv
 import matplotlib.pyplot as plt
+from utils import construct_facets_from_depth_map_mask
 
 def perspective_sphere_normal_and_depth(H, K, r, d):
     K_1 = np.linalg.inv(K)
@@ -96,7 +96,7 @@ class Data:
 
     def add_noise(self, std=0.1):
         self.n_noise = add_noise(self.n, self.mask, std)
-        self.n_noise_vis = (world_to_object(self.n_noise) + 1) / 2
+        self.n_noise_vis = (camera_to_object(self.n_noise) + 1) / 2
         self.n_noise_vis[~self.mask] = 1
 
     def add_outlier(self, percentage_outlier=0.01):
@@ -114,7 +114,7 @@ class Data:
         n_outlier[~self.mask] = [0, 0, -1]
         self.n_outlier = normalize_normal_map(n_outlier)
 
-        self.n_outlier_vis = (world_to_object(self.n_outlier) + 1) / 2
+        self.n_outlier_vis = (camera_to_object(self.n_outlier) + 1) / 2
         self.n_outlier_vis[~self.mask] = 1
 
 
@@ -139,7 +139,7 @@ class Data:
         n_outlier[~self.mask] = [0, 0, -1]
         self.n_outlier_noise = normalize_normal_map(n_outlier)
 
-        self.n_outlier_noise_vis = (world_to_object(self.n_outlier_noise) + 1) / 2
+        self.n_outlier_noise_vis = (camera_to_object(self.n_outlier_noise) + 1) / 2
         self.n_outlier_noise_vis[~self.mask] = 1
 
 
@@ -171,13 +171,13 @@ class Data:
             pad_area = self.bg_mask ^ mask_expand  # xor
             self.n_wbg[pad_area] = [0, 0, -1]
 
-        self.n_wbg_vis = (world_to_object(self.n_wbg) + 1) / 2
+        self.n_wbg_vis = (camera_to_object(self.n_wbg) + 1) / 2
         self.n_wbg_vis[~self.bg_mask] = 1
 
         self.n_wbg_noise = add_noise(self.n_wbg, self.bg_mask)
 
     def construct_mesh(self):
-        self.facets = construct_facet_for_depth(self.mask)
+        self.facets = construct_facets_from_depth_map_mask(self.mask)
         self.surf = pv.PolyData(self.vertices, self.facets)
 
 
@@ -193,7 +193,7 @@ toy.K = np.array([[f, 0, ox],
 toy.mask = np.ones((H, W), dtype=np.bool)
 toy.projection = "perspective"
 toy.fname = "toy"
-toy.n_vis = (world_to_object(toy.n)+1)/2
+toy.n_vis = (camera_to_object(toy.n)+1)/2
 
 toy_example = Data()
 toy_example.n = np.zeros((2, 2, 3), dtype=np.float)
@@ -202,7 +202,7 @@ toy_example.n[0, 1] = [0.5, 0.5, 0.8]
 toy_example.n[1, 0] = [0, 0, 1]
 toy_example.n[1, 1] = [0.5, -0.5, 0.8]
 toy_example.n = normalize_normal_map(toy_example.n)
-toy_example.n = world_to_object(toy_example.n)
+toy_example.n = camera_to_object(toy_example.n)
 f = 600
 ox = 2 / 2 - 0.5
 oy = 2 / 2 - 0.5
@@ -212,7 +212,7 @@ toy_example.K = np.array([[f, 0, ox],
 toy_example.mask = np.ones((2, 2), dtype=np.bool)
 toy_example.projection = "perspective"
 toy_example.fname = "toy_ex"
-toy_example.n_vis = (world_to_object(toy_example.n)+1)/2
+toy_example.n_vis = (camera_to_object(toy_example.n)+1)/2
 
 # H = 200
 # H = 64
@@ -240,7 +240,7 @@ sphere.construct_mesh()
 sphere.curl, *_ = curl_of_normal_map(sphere.n, sphere.mask)
 sphere.projection = "perspective"
 sphere.fname = "sphere_per"
-sphere.n_vis = (world_to_object(sphere.n)+1)/2
+sphere.n_vis = (camera_to_object(sphere.n)+1)/2
 sphere.bg_only_mask = np.isnan(sphere.depth_gt)
 
 # plt.imshow(sphere.n_vis)
@@ -258,93 +258,6 @@ sphere.add_background()
 v3d = np.ones((H, H, 3))
 v3d[sphere.mask] = sphere.vertices
 
-K_1 = np.linalg.inv(K)
-# create homogenouse coordinate
-yy, xx = np.meshgrid(range(H), range(H))
-xx = np.max(xx) - xx
-v_0 = np.zeros((H, H, 3))
-v_0[..., 0] = xx
-v_0[..., 1] = yy
-v_0[..., 2] = 1
-v_0 = v_0.reshape(-1, 3).T
-v_0_3d = (K_1 @ v_0).T.reshape((H, H, 3)) * (10 - r ** 2 / 10)
-v3d[sphere.bg_only_mask] = v_0_3d[sphere.bg_only_mask]
-sphere.vertices_bg = v3d.reshape(-1, 3)
-sphere.facets_bg = construct_facet_for_depth(sphere.bg_mask)
-sphere.surf_bg = pv.PolyData(sphere.vertices_bg, sphere.facets_bg)
-
-
-
-
-H = 64
-tent = Data()
-tent.n = tent_generator(H)
-tent.mask = np.ones((H, H), dtype=np.bool)
-# tent.curl, *_ = curl_of_normal_map(tent.n, tent.mask)
-tent.projection = "perspective"
-tent.fname = "tent"
-ox = H / 2 - 0.5
-oy = H / 2 - 0.5
-f = 600
-tent.K = np.array([[f, 0, ox],
-              [0, f, oy],
-              [0, 0, 1]], dtype=np.float)
-tent.n_vis = (world_to_object(tent.n)+1)/2
-tent.add_noise()
-tent.add_background(pad_width=10)
-tent.curl_wbg, *_ = curl_of_normal_map(tent.n_wbg, tent.bg_mask)
-
-
-tent_o = copy(tent)
-tent_o.K = None
-tent_o.projection = "orth"
-
-H = 65
-plane = Data()
-plane.n = generate_dis_normal_map(H)
-plane.mask = np.ones((H, H), dtype=np.bool)
-# plane.mask = boundary_excluded_mask(mask)
-plane.curl, *_ = curl_of_normal_map(plane.n, plane.mask)
-plane.projection = "perspective"
-plane.fname = "plane"
-ox = H / 2 - 0.5
-oy = H / 2 - 0.5
-f = 600
-plane.K = np.array([[f, 0, ox],
-              [0, f, oy],
-              [0, 0, 1]], dtype=np.float)
-plane.n_vis = (world_to_object(plane.n)+1)/2
-_, plane.vertice_gt = generate_dis_mesh(H, plane.K)
-plane.add_noise()
-plane.add_background()
-
-H = 32
-pure_plane = Data()
-pure_plane.n = np.zeros((H, H, 3), dtype=np.float)
-pure_plane.n[..., 0] = 1 / np.sqrt(6)
-pure_plane.n[..., 1] = 2 / np.sqrt(6)
-pure_plane.n[..., 2] = -1 / np.sqrt(6)
-
-# pure_plane.n[0, 0] = [1, 2, -1] / np.sqrt(6)
-pure_plane.mask = np.ones((H, H), dtype=np.bool)
-ox = H / 2 - 0.5
-oy = H / 2 - 0.5
-f = 600
-pure_plane.K = np.array([[f, 0, ox],
-              [0, f, oy],
-              [0, 0, 1]], dtype=np.float)
-pure_plane.n_vis = (world_to_object(pure_plane.n)+1)/2
-pure_plane.depth_gt = np.ones((H, H), dtype=np.float)
-pure_plane.fname = "pure_plane"
-yy, xx = np.meshgrid(range(H), range(H))
-xx = np.max(xx) - xx
-v_0 = np.zeros((H, H, 3))
-v_0[..., 0] = xx
-v_0[..., 1] = yy
-v_0[..., 2] = 1
-v_0 = v_0.reshape(-1, 3).T
-pure_plane.vertices = (np.linalg.inv(pure_plane.K) @ v_0).T.reshape((-1, 3))
-pure_plane.construct_mesh()
 
 
 

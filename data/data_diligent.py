@@ -1,9 +1,9 @@
 from data.data_class import Data
 from scipy.io import loadmat
 from matplotlib.pyplot import imread
-from utils import world_to_object, boundary_excluded_mask
+from utils import camera_to_object, boundary_excluded_mask
 import numpy as np
-from utils import construct_facet_for_depth
+from utils import construct_facets_from_depth_map_mask
 import pyvista as pv
 
 def ball_depth_generator(ball_mask):
@@ -12,11 +12,11 @@ def ball_depth_generator(ball_mask):
 class DataDiligent(Data):
     def __init__(self, name, type, exclude_bouday=True):
             if type == "gt":
-                self.n = world_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_gt"])
+                self.n = camera_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_gt"])
             elif type == "l2":
-                self.n = world_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_L2"])
+                self.n = camera_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_L2"])
             else:
-                self.n = world_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_est"])
+                self.n = camera_to_object(loadmat("data/diligent/{0}_{1}.mat".format(name, type))["Normal_est"])
 
             self.mask = imread("data/diligent/{}_mask.png".format(name)).astype(np.bool)
             if self.mask.ndim == 3:
@@ -53,7 +53,7 @@ class DataDiligent(Data):
                 xyz[..., 0] = temp
                 xyz[..., 0] = -xyz[..., 0]
                 self.vertices = xyz[self.mask]
-                self.facets = construct_facet_for_depth(self.mask)
+                self.facets = construct_facets_from_depth_map_mask(self.mask)
                 self.surf = pv.PolyData(self.vertices, self.facets)
             else:
                 self.depth_gt = ball_depth_generator(self.mask)
@@ -62,6 +62,6 @@ class DataDiligent(Data):
             self.projection = "perspective"
             self.fname = name + "_" + type
             self.curl = None
-            self.n_vis = (world_to_object(self.n) + 1)/2
-            self.n_vis[~self.mask] = 1
+            self.n_vis = (camera_to_object(self.n) + 1)/2
+            self.n_vis[~self.mask] = 0
 

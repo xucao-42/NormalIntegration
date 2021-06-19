@@ -1,122 +1,120 @@
-import numpy as np
 from utils import *
 from scipy.sparse import coo_matrix, hstack
 import pyvista as pv
 from scipy.sparse.linalg import lsqr
+import time
 
-
-class FourPointOrthographic:
+class OrthographicFourPoint:
+    # camera coordinates
     # x
     # |  z
     # | /
     # |/
     # o ---y
-    def __init__(self, data, setting):
+    # pixel coordinates
+    # u
+    # |
+    # |
+    # |
+    # o ---v
+    def __init__(self, data):
         self.method_name = "orthographic_four_point_plane_fitting"
+        method_start = time.time()
+        facet_H, facet_W = data.mask.shape
 
-        facet_mask = data.mask
-        facet_H, facet_W = facet_mask.shape
+        facet_idx = np.zeros_like(data.mask, dtype=np.int)
+        facet_idx[data.mask] = np.arange(np.sum(data.mask)) + 1  # facet idx begin from 1
 
-        facet_idx = np.zeros_like(facet_mask, dtype=np.int)
-        facet_idx[facet_mask] = np.arange(np.sum(facet_mask)) + 1  # facet idx begin from 1
+        top_left_mask = np.pad(data.mask, ((0, 1), (0, 1)), "constant", constant_values=0)
+        top_right_mask = np.pad(data.mask, ((0, 1), (1, 0)), "constant", constant_values=0)
+        bottom_left_mask = np.pad(data.mask, ((1, 0), (0, 1)), "constant", constant_values=0)
+        bottom_right_mask = np.pad(data.mask, ((1, 0), (1, 0)), "constant", constant_values=0)
 
-        top_left_mask = np.pad(facet_mask, ((0, 1), (0, 1)), "constant", constant_values=0)
-        top_right_mask = np.pad(facet_mask, ((0, 1), (1, 0)), "constant", constant_values=0)
-        bottom_left_mask = np.pad(facet_mask, ((1, 0), (0, 1)), "constant", constant_values=0)
-        bottom_right_mask = np.pad(facet_mask, ((1, 0), (1, 0)), "constant", constant_values=0)
+        vertex_mask = np.logical_or.reduce((top_right_mask,
+                                            top_left_mask,
+                                            bottom_right_mask,
+                                            bottom_left_mask))
 
-        vertex_mask = np.logical_or.reduce((top_right_mask, top_left_mask, bottom_right_mask, bottom_left_mask))
         vertex_idx = np.zeros((facet_H + 1, facet_W + 1), dtype=np.int)
         vertex_idx[vertex_mask] = np.arange(np.sum(vertex_mask)) + 1  # vertex idx begin from 1
 
-        num_facet = np.sum(facet_mask)
+        num_facet = np.sum(data.mask)
         num_vertex = np.sum(vertex_mask)
 
         top_left_vertex = vertex_idx[top_left_mask].flatten()
         top_right_vertex = vertex_idx[top_right_mask].flatten()
         bottom_left_vertex = vertex_idx[bottom_left_mask].flatten()
         bottom_right_vertex = vertex_idx[bottom_right_mask].flatten()
-        facet_id_vertice_id = np.hstack((top_left_vertex[:, None],
-                                         bottom_left_vertex[:, None],
-                                         bottom_right_vertex[:, None],
-                                         top_right_vertex[:, None]))  # start from 1
+        neighbor_pixel_ids = np.hstack((top_left_vertex[:, np.newaxis],
+                                         bottom_left_vertex[:, np.newaxis],
+                                         bottom_right_vertex[:, np.newaxis],
+                                         top_right_vertex[:, np.newaxis]))  # start from 1
 
-        yy, xx = np.meshgrid(range(facet_W + 1), range(facet_H + 1))
-        xx = np.max(xx) - xx
-        xx = xx.astype(np.float)
-        yy = yy.astype(np.float)
-        xx -= 0.5
-        yy -= 0.5
-
-        xx *= data.step_size
-        yy *= data.step_size
+        vv, uu = np.meshgrid(range(facet_W + 1), range(facet_H + 1))
+        uu = np.flip(uu, axis=0)
+        uu = (uu - 0.5) * data.step_size
+        vv = (vv - 0.5) * data.step_size
 
         v_0 = np.zeros((facet_H + 1, facet_W + 1, 3))
-        v_0[..., 0] = xx
-        v_0[..., 1] = yy
-
-        # center directions are used for extrcting depth values at Omega_n
-        center_yy, center_xx = np.meshgrid(range(facet_W), range(facet_H))
-        center_xx = np.max(center_xx) - center_xx
-        center_xx = center_xx.astype(np.float)[facet_mask]
-        center_yy = center_yy.astype(np.float)[facet_mask]
-        center_xx *= data.step_size
-        center_yy *= data.step_size
-
-        center_points = np.zeros((facet_H, facet_W, 3))
-        center_points[facet_mask, 0] = center_xx
-        center_points[facet_mask, 1] = center_yy
+        v_0[..., 0] = uu
+        v_0[..., 1] = vv
 
         # construct the left and the right part of A
-        try:
-            n_vec = data.n_used[facet_mask]
-        except:
-            n_vec = data.n[facet_mask]
+        num_plane_equations = np.sum(neighbor_pixel_ids != 0)
+        row_idx = np.arange(num_plane_equations)
 
-        num_eq = np.sum(facet_id_vertice_id != 0)
-        row_idx = np.arange(num_eq)
+        nz = data.n[data.mask, 2]
+        nz = np.repeat(nz, 4)
+        col_idx = (neighbor_pixel_ids - 1).flatten()
+        A_left = coo_matrix((nz, (row_idx, col_idx)))
 
-        data_ = n_vec[:, 2]
-        data_ = np.repeat(data_, 4)
-        col_idx = (facet_id_vertice_id - 1).flatten()
-        A_left = coo_matrix((data_, (row_idx, col_idx)))
-
-        A_right_data = np.ones(num_eq)
+        A_right_data = np.ones(num_plane_equations)
         A_right_col = np.arange(num_facet)
         A_right_col = np.repeat(A_right_col, 4)
         A_right = coo_matrix((A_right_data, (row_idx, A_right_col)))
 
         A = hstack([A_left, A_right])
 
-        u_vec = xx[vertex_mask]
-        v_vec = yy[vertex_mask]
-        n1 = n_vec[:, 0]
-        n2 = n_vec[:, 1]
-        n1 = np.repeat(n1, 4)
-        n2 = np.repeat(n2, 4)
+        u_vec = uu[vertex_mask]
+        v_vec = vv[vertex_mask]
+        nx = data.n[data.mask, 0]
+        ny = data.n[data.mask, 1]
+        nx = np.repeat(nx, 4)
+        ny = np.repeat(ny, 4)
 
-        u_vec = u_vec[facet_id_vertice_id - 1].flatten()
-        v_vec = v_vec[facet_id_vertice_id - 1].flatten()
-        b = - u_vec * n1 - v_vec * n2
+        u = u_vec[neighbor_pixel_ids - 1].flatten()
+        v = v_vec[neighbor_pixel_ids - 1].flatten()
+        b = - u * nx - v * ny
 
-        z = lsqr(A, b)[0]
-        self.res = A @ z - b
+        solver_start = time.time()
+        z = lsqr(A, b, atol=1e-17, btol=1e-17)[0]
+        solver_end = time.time()
 
-        vertex_depth = np.squeeze(z[:num_vertex])
-        vertex_facets = construct_facet_for_depth(vertex_mask)
-        v_0[vertex_mask, 2] = vertex_depth
-        vertex = v_0[vertex_mask]
-        self.vertex_surf = pv.PolyData(vertex, vertex_facets)
+        self.solver_runtime = solver_end - solver_start
+        method_end = time.time()
+        self.total_runtime = method_end - method_start
 
-        plane_displacement = np.squeeze(z[num_vertex:])
-        center_depth = (- plane_displacement - center_xx * n_vec[:, 0] - center_yy * n_vec[:, 1]) / n_vec[:, 2]
-        center_points[facet_mask, 2] = center_depth
+        self.residual = A @ z - b
 
+        plane_displacements = np.squeeze(z[num_vertex:])
 
-        self.depth_facets = construct_facet_for_depth(facet_mask)
-        self.surf = pv.PolyData(center_points[facet_mask], self.depth_facets)
+        # center directions are used for extrcting depth values at Omega_n
+        center_vv, center_uu = np.meshgrid(range(facet_W), range(facet_H))
+        center_uu = np.flip(center_uu, axis=0)
+        center_uu = center_uu[data.mask] * data.step_size
+        center_vv = center_vv[data.mask] * data.step_size
 
-        depth_map = np.ones_like(facet_mask, dtype=np.float) * np.nan
-        depth_map[facet_mask] = center_depth
-        self.depth = depth_map
+        center_depth = (- plane_displacements - center_uu * data.n[data.mask, 0] -
+                        center_vv * data.n[data.mask, 1]) / data.n[data.mask, 2]
+
+        self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
+        self.depth_map[data.mask] = center_depth
+        method_end = time.time()
+        self.total_runtime = method_end - method_start
+
+        # create a mesh model from the depth map
+        self.vertices = construct_vertices_from_depth_map_and_mask(data.mask, self.depth_map, data.step_size)
+        self.facets = construct_facets_from_depth_map_mask(data.mask)
+        self.surface = pv.PolyData(self.vertices, self.facets)
+
 

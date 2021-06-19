@@ -1,7 +1,7 @@
 from data.data_class import Data
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import normalize_normal_map, world_to_object, construct_facet_for_depth
+from utils import normalize_normal_map, camera_to_object, construct_facets_from_depth_map_mask
 import pyvista as pv
 
 
@@ -47,12 +47,12 @@ def anisotropic_gaussian_generator(H=150):
     n = normalize_normal_map(np.concatenate((-zx[..., None],
                         -zy[..., None],
                         np.ones_like(zx)[..., None]), axis=-1))
-    data.n = world_to_object(n)
+    data.n = camera_to_object(n)
     data.n_vis = (n + 1) / 2
     data.depth_gt = -z
 
     data.mask = np.ones((H, H), dtype=np.bool)
-    data.facets = construct_facet_for_depth(data.mask)
+    data.facets = construct_facets_from_depth_map_mask(data.mask)
     data.vertices = np.concatenate([(YY.flatten()[..., None] + 1),
                                     (XX.flatten()[..., None] + 1),
                                     data.depth_gt.flatten()[..., None]], axis=-1)

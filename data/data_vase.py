@@ -44,7 +44,7 @@ def vase_generator(H):
     n = normalize_normal_map(
         np.concatenate((-zx[..., None], -zy[..., None], np.ones_like(zx[..., None])), axis=-1))
 
-    data.n = world_to_object(n)
+    data.n = camera_to_object(n)
     data.n[~data.mask] = np.nan
 
     data.n_vis = (n + 1) / 2

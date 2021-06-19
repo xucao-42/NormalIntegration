@@ -1,16 +1,10 @@
-# discritization follows
-# Variational Methods for Normal Integration
-
-# perspective method follows
-# Normal Integration: A Survey
-from scipy.sparse import vstack
 from scipy.sparse.linalg import lsqr
 from utils import *
 import pyvista as pv
-import os
+import time
 
-
-def generate_dx_dy(mask, step_size):
+def generate_dx_dy(mask, step_size=1):
+    # pixel coordinates
     # ^ vertical positive
     # |
     # |
@@ -68,47 +62,86 @@ def generate_dx_dy(mask, step_size):
     return d_horizontal_pos / step_size, d_horizontal_neg / step_size, d_vertical_pos / step_size, d_vertical_neg / step_size
 
 
-class PoissonOrthographic:
+class OrthographicPoisson:
+    # camera coordinates
     # x
     # |  z
     # | /
     # |/
     # o ---y
-    def __init__(self, data, setting):
+    # pixel coordinates
+    # u
+    # |
+    # |
+    # |
+    # o ---v
+    def __init__(self, data):
         self.method_name = "orthographic_poisson"
-        mask = data.mask
+        method_start = time.time()
 
-        p = - data.n_used[mask, 0] / data.n_used[mask, 2]
-        q = - data.n_used[mask, 1] / data.n_used[mask, 2]
+        # Eq. (4) in "Normal Integration: A Survey."
+        p = - data.n[data.mask, 0] / data.n[data.mask, 2]
+        q = - data.n[data.mask, 1] / data.n[data.mask, 2]
 
-        dhp, dhn, dvp, dvn = generate_dx_dy(mask, data.step_size)
-        Dh = 0.5 * (dhp.T + dhn.T)
-        Dv = 0.5 * (dvp.T + dvn.T)
-        A = 0.5 * (dhp.T @ dhp + dhn.T @ dhn + dvp.T @ dvp + dvn.T @ dvn)
-        b = Dh @ q + Dv @ p
+        # Eqs. (23) and (24) in "Variational Methods for Normal Integration."
+        # w/o depth prior
+        dvp, dvn, dup, dun = generate_dx_dy(data.mask, data.step_size)
+        A = 0.5 * (dup.T @ dup + dun.T @ dun + dvp.T @ dvp + dvn.T @ dvn)
+        b = 0.5 * (dup.T + dun.T) @ p + 0.5 * (dvp.T + dvn.T) @ q
 
+        # There should be faster solvers.
+        solver_start = time.time()
         z = lsqr(A, b, atol=1e-17, btol=1e-17)[0]
-        self.res = A @ z - b
+        solver_end = time.time()
 
-        z_map = np.ones_like(mask, dtype=np.float) * np.nan
-        z_map[mask] = z
-        self.depth = z_map
+        self.solver_runtime = solver_end - solver_start
+        self.residual = A @ z - b
 
-        # construct a mesh from the depth map
-        self.facets = construct_facet_for_depth(mask)
-        H, W = mask.shape
-        yy, xx = np.meshgrid(range(W), range(H))
-        xx = np.max(xx) - xx
-        xx = xx.astype(np.float)
-        yy = yy.astype(np.float)
-        xx *= data.step_size
-        yy *= data.step_size
-        v_0 = np.zeros((H, W, 3))
-        v_0[..., 0] = xx
-        v_0[..., 1] = yy
-        v_0[..., 2] = z_map
-        self.vertices = v_0[mask].reshape(-1, 3)
-        self.surf = pv.PolyData(self.vertices, self.facets)
+        method_end = time.time()
+        self.total_runtime = method_end - method_start
+
+        self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
+        self.depth_map[data.mask] = z
+
+        # create a mesh model from the depth map
+        self.facets = construct_facets_from_depth_map_mask(data.mask)
+        self.vertices = construct_vertices_from_depth_map_and_mask(data.mask, self.depth_map, data.step_size)
+        self.surface = pv.PolyData(self.vertices, self.facets)
+
+if __name__ == "__main__":
+    import pyexr
+    import matplotlib.pyplot as plt
+    from utils import camera_to_object
+
+    shape = pyexr.open(os.path.join("..", "data", "relief.exr"))
+
+    flash_only_r = shape.get("R")
+    flash_only_g = shape.get("G")
+    flash_only_b = shape.get("B")
+    normal = normalize_normal_map(np.concatenate((flash_only_r, flash_only_g, flash_only_b), -1))
+    mask = boundary_excluded_mask(boundary_excluded_mask(np.isclose(np.sum(normal ** 2, -1), 1)))
+
+    # plt.imshow((normal+1)/2)
+    # plt.show()
+    #
+    # plt.imshow(mask)
+    # plt.show()
+
+
+    class Data():
+        pass
+
+
+    obj = Data()
+    obj.n = camera_to_object(normal)
+    obj.mask = mask
+    obj.fname = "relief"
+    obj.step_size = 1
+
+    result = OrthographicPoisson(obj)
+    result.surface.save("relief.ply", binary=False)
+
+
 
 
 

@@ -1,62 +1,61 @@
 import time, os
 import numpy as np
-from itertools import product
 import cv2
 
-from methods.perspective_four_point_plane_fitting import PerspectiveFourPointPlaneFitting
-from methods.perspective_five_point_plane_fitting import PerspectiveFivePointPlaneFitting
-from methods.perspective_zhu_and_smith_cd import PerspectiveZhuCD
-from methods.perspective_discrete_functional import PerspectiveDiscreteFunctional
-from methods.perspective_discrete_poisson import PerspectiveDiscretePoisson
-from methods.perspective_zhu_and_smith_sg import PerspectiveZhuSG
+from methods.orthographic_discrete_poisson import OrthographicPoisson
+from methods.orthographic_five_point_plane_fitting import OrthographicFivePoint
+from methods.orthographic_four_point_plane_fitting import OrthographicFourPoint
+from methods.orthographic_DGP import OrthographicDiscreteGeometryProcessing
+from methods.orthographic_discrete_functional import OrthographicDiscreteFunctional
 
-from data_diligent import DataDiligent
+from data.data_sphere import sphere_orth_generator
+from data.data_vase import vase_generator
+from data.data_anisotropic_gaussian import anisotropic_gaussian_generator
 
 
 class Setting:
     pass
-
-obj_name = [
-            # "bear",
-            # "buddha",
-            # "cat",
-            # "cow",
-            # "goblet",
-            "harvest",
-            # "pot1",
-            # "pot2",
-            # "reading"
-            ]
-
-type = ["ECCV2020"]
-
 setting = Setting()
 st_time = str(time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(time.time())))
-for objname in product(obj_name, type):
-    print(objname)
-    if objname[1] != "gt":  # if gt normal is used, exclued boundary
-        obj = DataDiligent(*objname, exclude_bouday=0)
-    else:
-        obj = DataDiligent(*objname, exclude_bouday=1)
 
-    setting.save_dir = os.path.join("results", st_time, objname[0])
-    setting.add_outlier = 0
-    setting.add_noise = 0
+objs = [
+        sphere_orth_generator(128),
+        # vase_generator(128),
+        # anisotropic_gaussian_generator(150)
+        ]
+
+for obj in objs:
+    setting.save_dir = os.path.join("results",  st_time, obj.fname)
     if not os.path.exists(setting.save_dir):
         os.makedirs(setting.save_dir)
-    obj.save_n(setting.save_dir)
 
-    setting.polynomial_order = 3
-    setting.num_neighbor = 25
-    setting.lambda_smooth = 0
+    setting.use_bg = False
+    setting.add_noise = 0
+    setting.add_outlier = 0
+
+    if setting.add_noise and setting.add_outlier:
+        obj.n_used = obj.n_outlier_noise.copy()
+    elif setting.add_noise:
+        obj.n_used = obj.n_noise.copy()
+    elif setting.add_outlier:
+        obj.n_used = obj.n_outlier.copy()
+    else:
+        obj.n_used = obj.n.copy()
+
+
+    obj.n = obj.n_used.copy()
+    from utils import camera_to_object
+    n_vis = (camera_to_object(obj.n) + 1)/2
+    n_vis[~obj.mask] = 1
+    cv2.imwrite(os.path.join(setting.save_dir, "input_normal_map.png"),
+                cv2.cvtColor((n_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     results = [
-               # PerspectiveFourPointPlaneFitting(obj),
-               PerspectiveFivePointPlaneFitting(obj),
-               # PerspectiveDiscreteFunctional(obj),
-               # PerspectiveDiscretePoisson(obj),
-               # PerspectiveZhuCD(obj, setting),
-               # PerspectiveZhuSG(obj, setting)
+                OrthographicFivePoint(obj),
+                # OrthographicFourPoint(obj),
+                # OrthographicPoisson(obj),
+                # OrthographicDiscreteFunctional(obj),
+                # OrthographicDiscreteGeometryProcessing(obj)
               ]
 
     absolute_difference_maps = []
@@ -71,16 +70,16 @@ for objname in product(obj_name, type):
         solver_runtime_list.append(z_est.solver_runtime)
         total_runtime_list.append(z_est.total_runtime)
 
-        scale = np.nanmean(obj.depth_gt / z_est.depth_map)
-        scaled_depth = z_est.depth_map * scale
-        absolute_difference_map = np.abs(scaled_depth - obj.depth_gt)
+        offset = np.nanmean(obj.depth_gt - z_est.depth_map)
+        offset_depth = z_est.depth_map + offset
+        absolute_difference_map = np.abs(offset_depth - obj.depth_gt)
         rmse = np.sqrt(np.nanmean(absolute_difference_map ** 2))
         absolute_difference_maps.append(absolute_difference_map)
         rmse_list.append(rmse)
         mae_list.append(np.nanmean(absolute_difference_map))
         std_list.append(np.nanstd(absolute_difference_map))
 
-        z_est.surface.points *= scale
+        z_est.surface.points[:, 2] += offset
         z_est.surface.save(os.path.join(setting.save_dir, "mesh_{}.ply".format(z_est.method_name)), binary=True)
     obj.surf.save(os.path.join(setting.save_dir, "mesh_gt.ply"), binary=True)
 
@@ -92,7 +91,6 @@ for objname in product(obj_name, type):
                     img=abs_diff_map_jet)
 
     import csv
-
     with open(os.path.join(setting.save_dir, 'evaluation_metric_summary.csv'), 'w') as file:
         writer = csv.writer(file)
         writer.writerow(["metric"] + method_name_list)
@@ -103,13 +101,12 @@ for objname in product(obj_name, type):
         writer.writerow(["total_runtime (sec)"] + total_runtime_list)
 
     from glob import glob
-
     crop_img_list = glob(os.path.join(setting.save_dir, "absolute_difference_map*.png"))
     crop_img_list += glob(os.path.join(setting.save_dir, "input_normal_map.png"))
 
     from utils import crop_a_set_of_images
-
     try:
         crop_a_set_of_images(*crop_img_list)
     except:
         pass
+

@@ -1,11 +1,9 @@
 import numpy as np
 from sklearn.preprocessing import normalize
-import matplotlib.pyplot as plt
 import cv2
 from scipy.sparse import coo_matrix
-import time
-import pyvista as pv
 from PIL import Image, ImageChops
+import os
 
 def move_left(mask):
     return np.pad(mask, ((0, 0), (0, 1)), "constant", constant_values=0)[:, 1:]
@@ -38,12 +36,8 @@ def move_bottom_left(mask):
 def move_bottom_right(mask):
     return np.pad(mask, ((1, 0), (1, 0)), "constant", constant_values=0)[:-1, :-1]
 
+
 def normalize_normal_map(N):
-    """
-    N is a unnormalized normal map of shape H_W_3. Normalize N across the third dimension.
-    :param N:
-    :return:
-    """
     H, W, C = N.shape 
     N = np.reshape(N, (-1, C))
     N = normalize(N, axis=1)
@@ -51,19 +45,18 @@ def normalize_normal_map(N):
     return N
 
 
-def construct_facet_for_depth(mask):
+def construct_facets_from_depth_map_mask(mask):
     idx = np.zeros_like(mask, dtype=np.int)
     idx[mask] = np.arange(np.sum(mask))
 
-    facet_move_top_mask = np.pad(mask, ((0, 1), (0, 0)), "constant", constant_values=0)[1:, :]
-    facet_move_left_mask = np.pad(mask, ((0, 0), (0, 1)), "constant", constant_values=0)[:, 1:]
-    facet_move_top_left_mask = np.pad(mask, ((0, 1), (0, 1)), "constant", constant_values=0)[1:, 1:]
+    facet_move_top_mask = move_top(mask)
+    facet_move_left_mask = move_left(mask)
+    facet_move_top_left_mask = move_top_left(mask)
 
     facet_top_left_mask = np.logical_and.reduce((facet_move_top_mask, facet_move_left_mask, facet_move_top_left_mask, mask))
-    facet_top_right_mask = np.pad(facet_top_left_mask, ((0, 0), (1, 0)), "constant", constant_values=0)[:, :-1]
-    facet_bottom_left_mask = np.pad(facet_top_left_mask, ((1, 0), (0, 0)), "constant", constant_values=0)[:-1, :]
-    facet_bottom_right_mask = np.pad(facet_top_left_mask, ((1, 0), (1, 0)), "constant", constant_values=0)[:-1, :-1]
-
+    facet_top_right_mask = move_right(facet_top_left_mask)
+    facet_bottom_left_mask = move_bottom(facet_top_left_mask)
+    facet_bottom_right_mask = move_bottom_right(facet_top_left_mask)
 
     return np.hstack((4 * np.ones((np.sum(facet_top_left_mask), 1)),
                idx[facet_top_left_mask][:, None],
@@ -72,24 +65,50 @@ def construct_facet_for_depth(mask):
                idx[facet_top_right_mask][:, None])).astype(np.int)
 
 
+def construct_vertices_from_depth_map_and_mask(mask, depth_map, step_size=1):
+    H, W = mask.shape
+    yy, xx = np.meshgrid(range(W), range(H))
+    xx = np.flip(xx, 0)
+    xx = xx * step_size
+    yy = yy * step_size
+
+    vertices = np.zeros((H, W, 3))
+    vertices[..., 0] = xx
+    vertices[..., 1] = yy
+    vertices[..., 2] = depth_map
+    return vertices[mask]
+
+
+
+def map_depth_map_to_point_clouds(depth_map, mask, K):
+    H, W = mask.shape
+    yy, xx = np.meshgrid(range(W), range(H))
+    xx = np.flip(xx, axis=0)
+    u = np.zeros((H, W, 3))
+    u[..., 0] = xx
+    u[..., 1] = yy
+    u[..., 2] = 1
+    u = u[mask].T  # 3 x m
+    p_tilde = (np.linalg.inv(K) @ u).T
+    return p_tilde * depth_map[mask, np.newaxis]
+
+
 def apply_jet_on_single_error_map(err_map):
     mu = np.nanmean(err_map)
     sigma = np.nanstd(err_map)
     err_map = err_map / (mu + 3 * sigma)
     err_map[err_map > 1] = 1
-    nan_mask = np.isnan(err_map)
-    err_map[nan_mask] = 1
+    err_map[np.isnan(err_map)] = 1
     err_jet = cv2.applyColorMap((255 * err_map).astype(np.uint8), cv2.COLORMAP_JET)
-    err_jet[nan_mask] = 255
     return err_jet
 
 
-def apply_jet_on_multiple_error_maps(err_maps):
+def apply_jet_on_multiple_error_maps(err_maps, sigma_multiplier=3):
     mu = np.nanmean(np.array(err_maps))
     sigma = np.nanstd(np.array(err_maps))
     err_jets = []
     for err_map in err_maps:
-        err_map = err_map / (mu + 3 * sigma)
+        err_map = err_map / (mu + sigma_multiplier * sigma)
         err_map[err_map > 1] = 1
         nan_mask = np.isnan(err_map)
         err_map[nan_mask] = 1
@@ -98,30 +117,8 @@ def apply_jet_on_multiple_error_maps(err_maps):
         err_jets.append(err_jet)
     return err_jets
 
-def mesh_plot(vertices_list, facet_list, filepath=None):
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    ax.set_aspect('equal')
-    X = vertices_list[..., 0]
-    Y = vertices_list[..., 1]
-    Z = vertices_list[..., 2]
-    max_range = np.array([X.max() - X.min(), Y.max() - Y.min(), Z.max() - Z.min()]).max() / 2.0
-    mid_x = (X.max() + X.min()) * 0.5
-    mid_y = (Y.max() + Y.min()) * 0.5
-    mid_z = (Z.max() + Z.min()) * 0.5
-    ax.plot_trisurf(X, Y, Z, triangles=facet_list, linewidth=0.2, antialiased=True, shade=True)
-    ax.set_xlim(mid_x - max_range, mid_x + max_range)
-    ax.set_ylim(mid_y - max_range, mid_y + max_range)
-    ax.set_zlim(mid_z - max_range, mid_z + max_range)
 
-    if filepath:
-        plt.savefig(filepath)
-    else:
-        plt.show()
-
-def world_to_object(n):
+def camera_to_object(n):
     no = n.copy()
     no[..., 2] = -no[..., 2]
     temp0 = no[..., 0].copy()
@@ -129,145 +126,6 @@ def world_to_object(n):
     no[..., 1] = temp0
     no[..., 0] = temp1
     return no
-
-def write_off_from_indexed_face_set(vertices, faces, file_path, num_vertex_per_facet=3):
-    """
-    Refer to Polygon Mesh Processing. pp.22.
-    :param vertice: a Nx3 ndarray or list
-    :param faces: a Nx3 ndarray or list
-    :param file_path:
-    :return:
-    """
-    if type(vertices) is not list:
-        vertices = list(vertices)
-    if type(faces) is not list:
-        faces = list(faces)
-    with open(file_path, "w") as f:
-        f.write("OFF" + '\n')
-        f.write("{0} {1} {2}\n".format(len(vertices), len(faces), 0))
-        for vertice in vertices:
-            f.write("{0:.8f} {1:.8f} {2:.8f}\n".format(vertice[0], vertice[1], vertice[2]))
-        for face in faces:
-            if num_vertex_per_facet == 4:
-                f.write("4 {0} {1} {2} {3}\n".format(face[0], face[1], face[2], face[3]))
-            elif num_vertex_per_facet == 3:
-                f.write("3 {0} {1} {2}\n".format(face[0], face[1], face[2]))
-        f.flush()
-
-def hide_all_plot(img, colorbar=True, fname=None, title="", vmin=0, vmax=10, cmap="viridis"):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot([1], [1])
-    ax.set_xticks([])
-    ax.set_yticks([])
-    plot = plt.imshow(img, vmax=vmax, vmin=vmin, cmap=cmap)
-    if colorbar:
-        cbar = plt.colorbar(plot, format="%.0e")
-        cbar.ax.tick_params(labelsize=18)
-
-    fig.patch.set_visible(False)
-    ax.patch.set_visible(False)
-    ax.axis('off')
-    ax.tick_params(axis=u'both', which=u'both', length=0)
-    plt.title(title)
-    if fname:
-        plt.savefig(fname)
-    else:
-        plt.show()
-    plt.clf()
-    plt.close()
-
-
-def generate_dis_normal_map(d):
-    r = (d - 1) / 2
-    # II, JJ = np.meshgrid(range(n), range(n))  # x point to right, y point to bottom
-    n = np.zeros((d, d, 3))
-    n[int(r)+1:, ...] = [0, 0, -1]
-    n[:int(r)+1, :int(r)+1, :] = [-np.sqrt(2)/2, 0, -np.sqrt(2)/2]
-    # n[:int(r)+1, :int(r)+1, :] = [np.sqrt(2)/2, 0, -1.6]
-    n[:int(r)+1, int(r)+1:, :] = [np.sqrt(2)/2, 0, -np.sqrt(2)/2]
-    n = normalize_normal_map(n)
-    return n
-
-def generate_dis_mesh(d, K=None):
-    r = (d - 1) / 2
-    facet_idx = np.arange(d * d).reshape((d, d)) + 1  # facet idx begin from 1
-
-    top_left_mask = np.pad(facet_idx, ((0, 1), (0, 1)), "constant", constant_values=0) != 0
-    top_right_mask = np.pad(facet_idx, ((0, 1), (1, 0)), "constant", constant_values=0) != 0
-    bottom_left_mask = np.pad(facet_idx, ((1, 0), (0, 1)), "constant", constant_values=0) != 0
-    bottom_right_mask = np.pad(facet_idx, ((1, 0), (1, 0)), "constant", constant_values=0) != 0
-
-    vertex_mask = np.logical_or.reduce((top_right_mask, top_left_mask, bottom_right_mask, bottom_left_mask))
-    vertex_idx = np.zeros((d + 1, d + 1), dtype=np.int)
-    vertex_idx[vertex_mask] = np.arange(np.sum(vertex_mask)) + 1  # vertex idx begin from 1
-
-    num_vertex = np.max(vertex_idx)
-    num_facet = np.max(facet_idx)
-
-    yy, xx = np.meshgrid(range(d + 1), range(d + 1))
-    xx = np.max(xx) - xx
-    xx = xx.astype(np.float)
-    yy = yy.astype(np.float)
-    # xx -= 0.5
-    # yy -= 0.5
-    v_0 = np.zeros((d + 1, d + 1, 3))
-    v_0[..., 0] = xx
-    v_0[..., 1] = yy
-
-    if K is not None:
-        K_1 = np.linalg.inv(K)
-        # create homogenouse coordinate
-        v_0[..., 2] = 1
-        v_0_f = v_0.reshape(-1, 3).T
-        view_direction = (K_1 @ v_0_f).T.reshape((d + 1, d + 1, 3))
-
-        v = np.zeros((d + 1, d + 1, 3))
-
-        alpha_top_left = 1 / (view_direction[..., 0] + view_direction[..., 2])
-        alpha_top_right = 1 / (view_direction[..., 2] - view_direction[..., 0])
-        v[:int(r) + 2, :int(r) + 1, :] = (alpha_top_left[..., None] * view_direction)[:int(r) + 2, :int(r) + 1, :]
-        v[:int(r) + 2, int(r) + 1:, :] = (alpha_top_right[..., None] * view_direction)[:int(r) + 2, int(r) + 1:, :]
-        v[int(r) + 2:, ...] = view_direction[int(r) + 2:, ...] / view_direction[int(r) + 2:, :, 2:3]
-
-        scale = np.sqrt(np.sum(v[..., 2] ** 2))
-        v /= scale
-    else:
-        dis = 100
-        slop = np.sqrt(2) * (xx - r)
-        v_0[..., 0] -= r
-        v_0[..., 1] -= r
-        v_0[:int(r) + 2, :int(r) + 1, 2] = dis - slop[:int(r) + 2, :int(r) + 1]
-        v_0[:int(r) + 2, int(r) + 1:, 2] = dis + slop[:int(r) + 2, :int(r) + 1]
-        v_0[int(r) + 2:, :, 2] = dis
-        v = v_0.copy()
-
-
-
-    vertices_list = v[vertex_mask].reshape((num_vertex, 3))
-    face_list_all = []
-    for i in range(d):
-        for j in range(d):
-            if j != int(r) or i>int(r):
-                face_list_all.append([vertex_idx[i, j], vertex_idx[i + 1, j], vertex_idx[i, j + 1]])
-
-    for i in range(d):
-        for j in range(d):
-            if j != int(r) or i>int(r):
-                face_list_all.append([vertex_idx[i, j + 1], vertex_idx[i + 1, j], vertex_idx[i + 1, j + 1]])
-
-    facet_list = np.array([i for i in face_list_all if 0 not in i])
-    facet_list -= 1  # the vertex index in a mesh starts from 0
-    H, W = facet_list.shape
-    facet_list_surf = np.hstack((np.ones((H, 1)) * 3, facet_list)).astype(np.int)
-    surf = pv.PolyData(vertices_list, facet_list_surf)
-    return surf, v
-
-
-def save_normal_map(n, fname):
-    n = world_to_object(n)
-    n = (n + 1) / 2
-    cv2.imwrite(fname, cv2.cvtColor((n * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
 
 def boundary_excluded_mask(mask):
@@ -285,6 +143,7 @@ def boundary_excluded_mask(mask):
     bes_mask = np.logical_or.reduce((top_mask, bottom_mask, left_mask, right_mask))
     be_mask = np.logical_and(be_mask, bes_mask)
     return be_mask
+
 
 def boundary_expansion_mask(mask):
     left_mask = np.pad(mask, ((0, 0), (0, 1)), "constant", constant_values=0)[:, 1:]
@@ -415,6 +274,7 @@ def angular_error_map(N1, N2):
     dot = np.clip(dot, -1., 1.)
     return np.rad2deg(np.arccos(dot))
 
+
 def crop_mask(mask):
     if mask.dtype is not np.uint8:
         mask = mask.astype(np.uint8) * 255
@@ -431,49 +291,6 @@ def crop_image_by_mask(img, mask):
     return img.copy()[bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
 
-if __name__ == "__main__":
-    # img_path = ["../selected_results/dragon_gt.png",
-# #     #             "../selected_results/dragon_l1.png",
-# #     #             "../selected_results/dragon_l2.png"]
-# #     # crop_a_set_of_images(*img_path)
-
-    surf, _ = generate_dis_mesh(65)
-    surf.plot()
-
-    # plane
-    # H = 34
-    # n = generate_dis_normal_map(H)
-    # mask = np.ones((H, H), dtype=np.bool)
-
-
-    # sphere
-    # n, mask, _ = generate_normal_map_and_depth(32)
-
-    # mitsuba rendered normal
-    # n = np.load("../../data/bunny_normal_map/orthographic/orthographic.npy")
-    # n = np.load("../data/bunny_normal_map/perspective/perspective.npy")
-    # n = np.load("../data/armadillo/perspective.npy")
-    # n = np.load("../../data/dragon/perspective.npy")
-    # n = np.load("../data/budda/perspective.npy")
-    # n = np.load("../data/dragon2/perspective.npy")
-
-    # normal_norm = np.sqrt(np.sum(n ** 2, axis=-1, keepdims=1))
-    # n /= normal_norm
-    # normal_norm = np.sqrt(np.sum(n ** 2, axis=-1, keepdims=1))
-    # mask = np.squeeze(np.isclose(normal_norm, 1, rtol=1e-1))
-    # mask = boundary_excluded_mask(mask)
-    # H = 64
-    # ox = H / 2 - 0.5
-    # oy = H / 2 - 0.5
-    # f = 600
-    # K = np.array([[f, 0, ox],
-    #               [0, f, oy],
-    #               [0, 0, 1]], dtype=np.float)
-    # n, t, v0_3d, tv, vv = perspective_sphere_normal_and_depth(H, K, d=10, r=0.5)
-    # from mesh_from_normal import MeshFromNormal
-    # mesh = MeshFromNormal(n, K, "o")
-    # mesh.save("sphere_orth.off")
-    # curl, *_ = curl_of_normal_map(n, mask) + 1e-15
-    # plt.imshow(curl)
-    # plt.show()
-    # hide_all_plot(curl, vmax=1, colorbar=True)
+def mkdir(data_dir):
+    if not os.path.exists(data_dir):
+        os.mkdir(data_dir)
