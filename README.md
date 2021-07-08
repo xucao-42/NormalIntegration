@@ -12,7 +12,7 @@ The official code of CVPR'21 paper "Normal Integration via Inverse Plane Fitting
  
  ```python comparison_on_analytically_computed_orthographic_normal_maps.py```
  
- This scipt compares 5 methods on 3 orthographic normal maps: sphere, vase, and anistropic Gaussian.
+ This script compares 5 methods on 3 orthographic normal maps: sphere, vase, and anisotropic Gaussian.
  The results will be saved in `results/#TIME`.
  
  You can optionally add Gaussion noise and/or outliers to the input normal maps by running
@@ -22,7 +22,7 @@ The official code of CVPR'21 paper "Normal Integration via Inverse Plane Fitting
   python comparison_on_analytically_computed_orthographic_normal_maps.py --outlier 0.1
   python comparison_on_analytically_computed_orthographic_normal_maps.py --outlier 0.1 --noise 0.1
   ```
-  The number after `--noise` is the standard deviation of Guassian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map.
+  The number after `--noise` is the standard deviation of Gaussian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map.
 
 - To visualize the estimated mesh surfaces, run
 
