@@ -1,7 +1,7 @@
 The official code of CVPR'21 paper "Normal Integration via Inverse Plane Fitting with Minimum Point-to-Plane Distance".
 
 # Quick Start 
- - create a anaconda environment with the required dependencies by running
+ - create an anaconda environment with the required dependencies by running
  
  ```
  conda create --name ni --file requirements.txt
@@ -22,7 +22,7 @@ The official code of CVPR'21 paper "Normal Integration via Inverse Plane Fitting
   python comparison_on_analytically_computed_orthographic_normal_maps.py --outlier 0.1
   python comparison_on_analytically_computed_orthographic_normal_maps.py --outlier 0.1 --noise 0.1
   ```
-  The number after `--noise` is the standard deviation of Guassian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map
+  The number after `--noise` is the standard deviation of Guassian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map.
 
 - To visualize the estimated mesh surfaces, run
 
