@@ -108,40 +108,6 @@ class OrthographicPoisson:
         self.vertices = construct_vertices_from_depth_map_and_mask(data.mask, self.depth_map, data.step_size)
         self.surface = pv.PolyData(self.vertices, self.facets)
 
-if __name__ == "__main__":
-    import pyexr
-    import matplotlib.pyplot as plt
-    from utils import camera_to_object
-
-    shape = pyexr.open(os.path.join("..", "data", "relief.exr"))
-
-    flash_only_r = shape.get("R")
-    flash_only_g = shape.get("G")
-    flash_only_b = shape.get("B")
-    normal = normalize_normal_map(np.concatenate((flash_only_r, flash_only_g, flash_only_b), -1))
-    mask = boundary_excluded_mask(boundary_excluded_mask(np.isclose(np.sum(normal ** 2, -1), 1)))
-
-    # plt.imshow((normal+1)/2)
-    # plt.show()
-    #
-    # plt.imshow(mask)
-    # plt.show()
-
-
-    class Data():
-        pass
-
-
-    obj = Data()
-    obj.n = camera_to_object(normal)
-    obj.mask = mask
-    obj.fname = "relief"
-    obj.step_size = 1
-
-    result = OrthographicPoisson(obj)
-    result.surface.save("relief.ply", binary=False)
-
-
 
 
 

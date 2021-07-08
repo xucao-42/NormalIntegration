@@ -41,9 +41,4 @@ def sphere_orth_generator(H=128):
     data.projection = "orthographic"
     data.fname = "sphere"
 
-    data.add_noise()
-    data.add_background(pad_width=0)
-    data.add_outlier()
-    data.add_outlier_on_noise_map(0.05)
-
     return data

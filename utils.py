@@ -246,6 +246,7 @@ def curl_of_normal_map(n, mask):
     # curl_cv2 = np.abs(z_xy_cv2 - z_yx_cv2)
     return curl, z_yx, z_xy, zx, zy
 
+
 def crop_a_set_of_images(*image_path):
     from PIL import ImageChops, Image
     imgs = []

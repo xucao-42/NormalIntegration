@@ -1,6 +1,8 @@
-import time, os
+import time
+import os
 import numpy as np
 import cv2
+import argparse
 
 from methods.orthographic_discrete_poisson import OrthographicPoisson
 from methods.orthographic_five_point_plane_fitting import OrthographicFivePoint
@@ -13,49 +15,49 @@ from data.data_vase import vase_generator
 from data.data_anisotropic_gaussian import anisotropic_gaussian_generator
 
 
-class Setting:
-    pass
-setting = Setting()
-st_time = str(time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(time.time())))
+parser = argparse.ArgumentParser()
+parser.add_argument('-n', "--noise", type=float, default=0, help='the standard deviation of Gaussian noise added to the input normal map (default 0)')
+parser.add_argument('-o', "--outlier", type=float, default=0, help='the percentage of outliers (range from 0 to 1) added to the input normal map (default 0)')
+par = parser.parse_args()
+
+str_time = str(time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(time.time())))
 
 objs = [
         sphere_orth_generator(128),
-        # vase_generator(128),
-        # anisotropic_gaussian_generator(150)
+        vase_generator(128),
+        anisotropic_gaussian_generator(150)
         ]
 
 for obj in objs:
-    setting.save_dir = os.path.join("results",  st_time, obj.fname)
-    if not os.path.exists(setting.save_dir):
-        os.makedirs(setting.save_dir)
+    result_dir = os.path.join("results",  str_time, obj.fname)
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
 
-    setting.use_bg = False
-    setting.add_noise = 0
-    setting.add_outlier = 0
-
-    if setting.add_noise and setting.add_outlier:
-        obj.n_used = obj.n_outlier_noise.copy()
-    elif setting.add_noise:
-        obj.n_used = obj.n_noise.copy()
-    elif setting.add_outlier:
-        obj.n_used = obj.n_outlier.copy()
+    if par.noise and par.outlier:
+        obj.add_outlier_on_noise_map(par.outlier, par.noise)
+        obj.input_normal_map = obj.n_outlier_noise.copy()
+    elif par.noise:
+        obj.add_noise(par.noise)
+        obj.input_normal_map = obj.n_noise.copy()
+    elif par.outlier:
+        obj.add_outlier(par.outlier)
+        obj.input_normal_map = obj.n_outlier.copy()
     else:
-        obj.n_used = obj.n.copy()
+        obj.input_normal_map = obj.n.copy()
 
-
-    obj.n = obj.n_used.copy()
+    obj.n = obj.input_normal_map.copy()
     from utils import camera_to_object
     n_vis = (camera_to_object(obj.n) + 1)/2
     n_vis[~obj.mask] = 1
-    cv2.imwrite(os.path.join(setting.save_dir, "input_normal_map.png"),
+    cv2.imwrite(os.path.join(result_dir, "input_normal_map.png"),
                 cv2.cvtColor((n_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     results = [
                 OrthographicFivePoint(obj),
-                # OrthographicFourPoint(obj),
-                # OrthographicPoisson(obj),
-                # OrthographicDiscreteFunctional(obj),
-                # OrthographicDiscreteGeometryProcessing(obj)
+                OrthographicFourPoint(obj),
+                OrthographicPoisson(obj),
+                OrthographicDiscreteFunctional(obj),
+                OrthographicDiscreteGeometryProcessing(obj)
               ]
 
     absolute_difference_maps = []
@@ -80,29 +82,29 @@ for obj in objs:
         std_list.append(np.nanstd(absolute_difference_map))
 
         z_est.surface.points[:, 2] += offset
-        z_est.surface.save(os.path.join(setting.save_dir, "mesh_{}.ply".format(z_est.method_name)), binary=True)
-    obj.surf.save(os.path.join(setting.save_dir, "mesh_gt.ply"), binary=True)
+        z_est.surface.save(os.path.join(result_dir, "mesh_{}.ply".format(z_est.method_name)), binary=True)
+    obj.surf.save(os.path.join(result_dir, "mesh_gt.ply"), binary=True)
 
     from utils import apply_jet_on_multiple_error_maps
 
     absolute_difference_maps_JET = apply_jet_on_multiple_error_maps(absolute_difference_maps, sigma_multiplier=2)
     for idx, abs_diff_map_jet in enumerate(absolute_difference_maps_JET):
-        cv2.imwrite(filename=os.path.join(setting.save_dir, "absolute_difference_map_{}.png".format(results[idx].method_name)),
+        cv2.imwrite(filename=os.path.join(result_dir, "absolute_difference_map_{}.png".format(results[idx].method_name)),
                     img=abs_diff_map_jet)
 
     import csv
-    with open(os.path.join(setting.save_dir, 'evaluation_metric_summary.csv'), 'w') as file:
+    with open(os.path.join(result_dir, 'evaluation_metric_summary.csv'), 'w') as file:
         writer = csv.writer(file)
         writer.writerow(["metric"] + method_name_list)
         writer.writerow(["RMSE"] + rmse_list)
         writer.writerow(["MAbsE"] + mae_list)
         writer.writerow(["std"] + std_list)
-        writer.writerow(["sover_time (sec)"] + solver_runtime_list)
+        writer.writerow(["solver_time (sec)"] + solver_runtime_list)
         writer.writerow(["total_runtime (sec)"] + total_runtime_list)
 
     from glob import glob
-    crop_img_list = glob(os.path.join(setting.save_dir, "absolute_difference_map*.png"))
-    crop_img_list += glob(os.path.join(setting.save_dir, "input_normal_map.png"))
+    crop_img_list = glob(os.path.join(result_dir, "absolute_difference_map*.png"))
+    crop_img_list += glob(os.path.join(result_dir, "input_normal_map.png"))
 
     from utils import crop_a_set_of_images
     try:

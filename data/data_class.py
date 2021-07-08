@@ -118,7 +118,9 @@ class Data:
         self.n_outlier_vis[~self.mask] = 1
 
 
-    def add_outlier_on_noise_map(self, percentage_outlier=0.01):
+    def add_outlier_on_noise_map(self, percentage_outlier=0.01, std_noise=0.1):
+        self.add_noise(std_noise)
+
         p_map = - self.n[..., 0] / self.n[..., 2]
         q_map = - self.n[..., 1] / self.n[..., 2]
 
@@ -180,39 +182,6 @@ class Data:
         self.facets = construct_facets_from_depth_map_mask(self.mask)
         self.surf = pv.PolyData(self.vertices, self.facets)
 
-
-toy = Data()
-toy.n = np.array([[[-np.sqrt(2)/2, 0, -np.sqrt(2)/2], [np.sqrt(2)/2, 0, -np.sqrt(2)/2]]])
-f = 600
-H, W = toy.n.shape[:2]
-ox = H / 2 - 0.5
-oy = W / 2 - 0.5
-toy.K = np.array([[f, 0, ox],
-              [0, f, oy],
-              [0, 0, 1]], dtype=np.float)
-toy.mask = np.ones((H, W), dtype=np.bool)
-toy.projection = "perspective"
-toy.fname = "toy"
-toy.n_vis = (camera_to_object(toy.n)+1)/2
-
-toy_example = Data()
-toy_example.n = np.zeros((2, 2, 3), dtype=np.float)
-toy_example.n[0, 0] = [0, 0, 1]
-toy_example.n[0, 1] = [0.5, 0.5, 0.8]
-toy_example.n[1, 0] = [0, 0, 1]
-toy_example.n[1, 1] = [0.5, -0.5, 0.8]
-toy_example.n = normalize_normal_map(toy_example.n)
-toy_example.n = camera_to_object(toy_example.n)
-f = 600
-ox = 2 / 2 - 0.5
-oy = 2 / 2 - 0.5
-toy_example.K = np.array([[f, 0, ox],
-              [0, f, oy],
-              [0, 0, 1]], dtype=np.float)
-toy_example.mask = np.ones((2, 2), dtype=np.bool)
-toy_example.projection = "perspective"
-toy_example.fname = "toy_ex"
-toy_example.n_vis = (camera_to_object(toy_example.n)+1)/2
 
 # H = 200
 # H = 64
