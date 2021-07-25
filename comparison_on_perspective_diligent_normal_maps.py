@@ -2,6 +2,9 @@ import time, os
 import numpy as np
 from itertools import product
 import cv2
+import sys
+sys.path.append("methods")
+sys.path.append("data")
 
 from methods.perspective_four_point_plane_fitting import PerspectiveFourPointPlaneFitting
 from methods.perspective_five_point_plane_fitting import PerspectiveFivePointPlaneFitting
@@ -11,7 +14,6 @@ from methods.perspective_discrete_poisson import PerspectiveDiscretePoisson
 from methods.perspective_zhu_and_smith_sg import PerspectiveZhuSG
 
 from data_diligent import DataDiligent
-
 
 class Setting:
     pass

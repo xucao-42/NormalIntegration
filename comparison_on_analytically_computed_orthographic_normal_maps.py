@@ -3,6 +3,9 @@ import os
 import numpy as np
 import cv2
 import argparse
+import sys
+sys.path.append("methods")
+sys.path.append("data")
 
 from methods.orthographic_discrete_poisson import OrthographicPoisson
 from methods.orthographic_five_point_plane_fitting import OrthographicFivePoint
