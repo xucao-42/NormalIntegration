@@ -35,7 +35,7 @@ This repository contains the official python implementation of the CVPR'21 norma
   The number after `--noise` is the standard deviation of Gaussian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map.
 
 ## Experiments on perspective normal maps
-- Download the perspective normal maps from [here](https://drive.google.com/file/d/1EgC3x8daOWL4uQmc6c4nXVe4mdAMJVfg/view?usp=sharing) and extract them under the `data` folder. 
+- Download the perspective normal maps from [here](https://drive.google.com/file/d/1PZCNq3y5S5NcJhDgJcTw4vIAYggywjTd/view?usp=sharing) and extract them under the `data` folder. 
 These normal maps are picked out from [DiLiGenT dataset](https://sites.google.com/site/photometricstereodata/single?authuser=0).
 
 - run ```python comparison_on_perspective_diligent_normal_maps.py```
