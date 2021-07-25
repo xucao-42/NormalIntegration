@@ -1,10 +1,20 @@
-The official code of CVPR'21 paper "Normal Integration via Inverse Plane Fitting with Minimum Point-to-Plane Distance".
+#[Normal Integration via Inverse Plane Fitting with Minimum Point-to-Plane Distance](https://openaccess.thecvf.com/content/CVPR2021/html/Cao_Normal_Integration_via_Inverse_Plane_Fitting_With_Minimum_Point-to-Plane_Distance_CVPR_2021_paper.html)
+[Xu Cao](https://hoshino042.github.io/homepage/), [Boxin Shi](http://alumni.media.mit.edu/~shiboxin/), [Fumio Okura](http://alumni.media.mit.edu/~shiboxin/) and [Yasuyuki Matsushita](http://www-infobiz.ist.osaka-u.ac.jp/en/member/matsushita/)
 
+CVPR 2021
+
+![](teaser.png)
+
+This repository contains the official python implementation of the CVPR'21 normal integration paper, along with our python implementations based on the following papers:
+- "Variational Methods for Normal Integration", Quéau et al., Journal of Mathematical Imaging and Vision 60(4), pp 609--632, 2018. 
+- "Normal Integration: a Survey", Quéau et al., Journal of Mathematical Imaging and Vision 60(4), pp 576--593, 2018. [Official Matlab Code](https://github.com/yqueau/normal_integration)
+- "Least Squares Surface Reconstruction on Arbitrary Domains", Zhu et al., ECCV, 2020. [Official Matlab Code](https://github.com/waps101/LSQSurfaceReconstruction)
+- "Surface-from-Gradients: An Approach Based on Discrete Geometry Processing", Xie et al., CVPR, 2014.
 # Quick Start 
- - create an anaconda environment with the required dependencies by running
+ - cd to this repository's root folder and reproduce our anaconda environment by running
  
  ```
- conda create --name ni --file requirements.txt
+ conda env create -f=environment.yml 
  conda activate ni
  ```
  

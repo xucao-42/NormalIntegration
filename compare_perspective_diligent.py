@@ -17,18 +17,18 @@ class Setting:
     pass
 
 obj_name = [
-            # "bear",
-            # "buddha",
-            # "cat",
-            # "cow",
-            # "goblet",
+            "bear",
+            "buddha",
+            "cat",
+            "cow",
+            "goblet",
             "harvest",
-            # "pot1",
-            # "pot2",
-            # "reading"
+            "pot1",
+            "pot2",
+            "reading"
             ]
 
-type = ["ECCV2020"]
+type = ["gt"]
 
 setting = Setting()
 st_time = str(time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(time.time())))
@@ -48,7 +48,7 @@ for objname in product(obj_name, type):
 
     setting.polynomial_order = 3
     setting.num_neighbor = 25
-    setting.lambda_smooth = 0
+    setting.lambda_smooth = 1
 
     results = [
                # PerspectiveFourPointPlaneFitting(obj),
@@ -99,7 +99,7 @@ for objname in product(obj_name, type):
         writer.writerow(["RMSE"] + rmse_list)
         writer.writerow(["MAbsE"] + mae_list)
         writer.writerow(["std"] + std_list)
-        writer.writerow(["sover_time (sec)"] + solver_runtime_list)
+        writer.writerow(["solver_time (sec)"] + solver_runtime_list)
         writer.writerow(["total_runtime (sec)"] + total_runtime_list)
 
     from glob import glob

@@ -41,8 +41,7 @@ def vase_generator(H):
     zy = (py / z) * py_y
     zx[~data.mask], zy[~data.mask] = 0, 0
 
-    n = normalize_normal_map(
-        np.concatenate((-zx[..., None], -zy[..., None], np.ones_like(zx[..., None])), axis=-1))
+    n = normalize_normal_map(np.stack((-zx, -zy, np.ones_like(zx)), axis=-1))
 
     data.n = camera_to_object(n)
     data.n[~data.mask] = np.nan
@@ -58,9 +57,4 @@ def vase_generator(H):
     data.fname = "vase"
     data.projection = "orthographic"
     data.construct_mesh()
-
-    data.add_noise()
-    data.add_background(pad_width=0)
-    data.add_outlier()
-    data.add_outlier_on_noise_map(0.1)
     return data

@@ -36,7 +36,7 @@ class OrthographicFourPoint:
                                             bottom_left_mask))
 
         vertex_idx = np.zeros((facet_H + 1, facet_W + 1), dtype=np.int)
-        vertex_idx[vertex_mask] = np.arange(np.sum(vertex_mask)) + 1  # vertex idx begin from 1
+        vertex_idx[vertex_mask] = np.arange(np.sum(vertex_mask)) + 1  # vertex indices start from 1
 
         num_facet = np.sum(data.mask)
         num_vertex = np.sum(vertex_mask)
@@ -45,10 +45,7 @@ class OrthographicFourPoint:
         top_right_vertex = vertex_idx[top_right_mask].flatten()
         bottom_left_vertex = vertex_idx[bottom_left_mask].flatten()
         bottom_right_vertex = vertex_idx[bottom_right_mask].flatten()
-        neighbor_pixel_ids = np.hstack((top_left_vertex[:, np.newaxis],
-                                         bottom_left_vertex[:, np.newaxis],
-                                         bottom_right_vertex[:, np.newaxis],
-                                         top_right_vertex[:, np.newaxis]))  # start from 1
+        neighbor_pixel_ids = np.stack((top_left_vertex, bottom_left_vertex, bottom_right_vertex, top_right_vertex), axis=-1)
 
         vv, uu = np.meshgrid(range(facet_W + 1), range(facet_H + 1))
         uu = np.flip(uu, axis=0)

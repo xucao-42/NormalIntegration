@@ -5,7 +5,7 @@ import cv2
 import os
 import pyvista as pv
 import matplotlib.pyplot as plt
-from utils import construct_facets_from_depth_map_mask
+from utils import construct_facets_from_depth_map_mask, crop_image_by_mask
 
 def perspective_sphere_normal_and_depth(H, K, r, d):
     K_1 = np.linalg.inv(K)
@@ -83,16 +83,16 @@ class Data:
 
     def save_n(self, fpath, use_bg=False, use_nosie=False, use_outlier=False):
         if use_bg:
-            cv2.imwrite(os.path.join(fpath, self.fname + "_bg.png"), cv2.cvtColor((self.n_wbg_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+            cv2.imwrite(os.path.join(fpath, self.fname + "_bg.png"), cv2.cvtColor((crop_image_by_mask(self.n_wbg_vis, self.mask) * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
         elif use_nosie and use_outlier:
             cv2.imwrite(os.path.join(fpath, self.fname + "_noise_outlier.png"),
-                        cv2.cvtColor((self.n_outlier_noise_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+                        cv2.cvtColor((crop_image_by_mask(self.n_outlier_noise_vis, self.mask) * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
         elif use_nosie:
-            cv2.imwrite(os.path.join(fpath, self.fname + "_noise.png"), cv2.cvtColor((self.n_noise_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+            cv2.imwrite(os.path.join(fpath, self.fname + "_noise.png"), cv2.cvtColor((crop_image_by_mask(self.n_noise_vis, self.mask) * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
         elif use_outlier:
-            cv2.imwrite(os.path.join(fpath, self.fname + "_outlier.png"), cv2.cvtColor((self.n_outlier_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+            cv2.imwrite(os.path.join(fpath, self.fname + "_outlier.png"), cv2.cvtColor((crop_image_by_mask(self.n_outlier_vis, self.mask) * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
         else:
-            cv2.imwrite(os.path.join(fpath, self.fname + ".png"), cv2.cvtColor((self.n_vis * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+            cv2.imwrite(os.path.join(fpath, self.fname + ".png"), cv2.cvtColor((crop_image_by_mask(self.n_vis, self.mask) * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def add_noise(self, std=0.1):
         self.n_noise = add_noise(self.n, self.mask, std)

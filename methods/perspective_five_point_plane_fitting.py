@@ -27,15 +27,14 @@ class PerspectiveFivePointPlaneFitting:
         vv, uu = np.meshgrid(range(W), range(H))
         uu = np.flip(uu, axis=0)
 
-        # pixel_coordinates = np.concatenate((uu[data.mask][..., np.newaxis],
-        #                                     vv[data.mask][..., np.newaxis]), axis=-1)
+        # pixel_coordinates = np.stack((uu[data.mask], vv[data.mask]), axis=-1)
         # from sklearn.neighbors import KDTree
         # tree = KDTree(pixel_coordinates)
         # neighbor_pixel_ids = tree.query_radius(pixel_coordinates, r=1 + 1e-7)
 
         # For each pixel, search for its neighbor pixel indices and store them as an item in the list neighbor_pixel_ids
         # including itself's index
-        pixel_idx = np.zeros_like(data.mask, dtype=np.int)
+        pixel_idx = np.zeros_like(data.mask, dtype=int)
         pixel_idx[data.mask] = np.arange(np.sum(data.mask)) + 1  # pixel idx starts from 1
 
         expand_mask = np.pad(data.mask, 1, "constant", constant_values=0)
@@ -46,12 +45,7 @@ class PerspectiveFivePointPlaneFitting:
         left_neighbor = expand_pixel_idx[move_left(expand_mask)]
         right_neighbor = expand_pixel_idx[move_right(expand_mask)]
 
-        neighbor_pixel_ids = np.hstack((pixel_idx[data.mask][:, np.newaxis],
-                                        top_neighbor[:, np.newaxis],
-                                        bottom_neighbor[:, np.newaxis],
-                                        left_neighbor[:, np.newaxis],
-                                        right_neighbor[:, np.newaxis]))
-
+        neighbor_pixel_ids = np.stack((pixel_idx[data.mask], top_neighbor, bottom_neighbor, left_neighbor, right_neighbor), axis=-1)
         neighbor_pixel_ids = [i[i!=0] - 1 for i in neighbor_pixel_ids]  # pixel idx starts from 0 now
 
 

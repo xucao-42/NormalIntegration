@@ -63,5 +63,5 @@ class DataDiligent(Data):
             self.fname = name + "_" + type
             self.curl = None
             self.n_vis = (camera_to_object(self.n) + 1)/2
-            self.n_vis[~self.mask] = 0
+            self.n_vis[~self.mask] = 1
 

@@ -2,6 +2,7 @@
 .idea
 results/
 data/diligent/
+*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

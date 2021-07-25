@@ -60,12 +60,12 @@ class PerspectiveFourPointPlaneFitting:
         uu = uu - 0.5
         vv = vv - 0.5
 
-        v_0 = np.zeros((H + 1, W + 1, 3))
-        v_0[..., 0] = uu
-        v_0[..., 1] = vv
-        v_0[..., 2] = 1
-        v_0_f = v_0[vertex_mask].T
-        vertex_directions = (K_inv @ v_0_f).T
+        u_tilde = np.zeros((H + 1, W + 1, 3))
+        u_tilde[..., 0] = uu
+        u_tilde[..., 1] = vv
+        u_tilde[..., 2] = 1
+        u_tilde = u_tilde[vertex_mask].T
+        p_tilde = (K_inv @ u_tilde).T
 
         # center directions are used for extracting depth values at Omega_n
         center_yy, center_xx = np.meshgrid(range(W), range(H))
@@ -80,7 +80,7 @@ class PerspectiveFourPointPlaneFitting:
 
         # construct the left and the right part of A
         n_vec = data.n[data.mask]
-        v_vec = vertex_directions[neighbor_pixel_ids -1]
+        v_vec = p_tilde[neighbor_pixel_ids -1]
         data_ = np.sum(n_vec[:, None, :] * v_vec, axis=-1).flatten()
 
         row_idx = np.arange(num_facet * 4)
@@ -109,10 +109,12 @@ class PerspectiveFourPointPlaneFitting:
         center_depth = - plane_displacements / (np.sum(data.n[data.mask] * center_directions, axis=-1))
         center_points = center_depth[:, None] * center_directions
 
+        self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
+        self.depth_map[data.mask] = center_depth
+
+        # construct a mesh from the depth map
         self.facets = construct_facets_from_depth_map_mask(data.mask)
         self.surface = pv.PolyData(center_points, self.facets)
 
-        self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
-        self.depth_map[data.mask] = center_depth
 
 

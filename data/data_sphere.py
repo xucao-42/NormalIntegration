@@ -23,9 +23,8 @@ def sphere_orth_generator(H=128):
     zy = - YY / z
     zx[~data.mask], zy[~data.mask] = 0, 0
 
-    n = normalize_normal_map(np.concatenate((-zx[..., None],
-                        -zy[..., None],
-                        np.ones_like(zx)[..., None]), axis=-1))
+    n = normalize_normal_map(np.stack((-zx, -zy, np.ones_like(zx)), axis=-1))
+
     data.n = camera_to_object(n)
     data.n_vis = (n + 1) / 2
     data.n_vis[~data.mask] = 1

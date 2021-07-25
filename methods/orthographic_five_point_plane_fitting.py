@@ -25,8 +25,7 @@ class OrthographicFivePoint:
         vv, uu = np.meshgrid(range(W), range(H))
         uu = np.flip(uu, axis=0)
 
-        # pixel_coordinates = np.concatenate((uu[data.mask][..., np.newaxis],
-        #                                     vv[data.mask][..., np.newaxis]), axis=-1)
+        # pixel_coordinates = np.stack((uu[data.mask], vv[data.mask]), axis=-1)
         # from sklearn.neighbors import KDTree
         # tree = KDTree(pixel_coordinates)
         # neighbor_pixel_ids = tree.query_radius(pixel_coordinates, r=1 + 1e-7)
@@ -34,7 +33,8 @@ class OrthographicFivePoint:
         # For each pixel, search for its neighbor pixel indices and store them as an item in the list neighbor_pixel_ids
         # including itself's index
         pixel_idx = np.zeros_like(data.mask, dtype=np.int)
-        pixel_idx[data.mask] = np.arange(np.sum(data.mask)) + 1  # pixel idx starts from 1
+        pixel_idx[data.mask] = np.arange(np.sum(data.mask)) + 1
+        # pixel indices starts from 1 to ensure all pixels with 0 indices are background pixels
 
         expand_mask = np.pad(data.mask, 1, "constant", constant_values=0)
         expand_pixel_idx = np.pad(pixel_idx, 1, "constant", constant_values=0)
@@ -44,16 +44,14 @@ class OrthographicFivePoint:
         left_neighbor = expand_pixel_idx[move_left(expand_mask)]
         right_neighbor = expand_pixel_idx[move_right(expand_mask)]
 
-        neighbor_pixel_ids = np.hstack((pixel_idx[data.mask][:, np.newaxis],
-                                        top_neighbor[:, np.newaxis],
-                                        bottom_neighbor[:, np.newaxis],
-                                        left_neighbor[:, np.newaxis],
-                                        right_neighbor[:, np.newaxis]))
+        neighbor_pixel_ids = np.stack((pixel_idx[data.mask], top_neighbor, bottom_neighbor, left_neighbor, right_neighbor), axis=-1)
 
-        neighbor_pixel_ids = [i[i!=0] - 1 for i in neighbor_pixel_ids]  # pixel idx starts from 0 now
+        neighbor_pixel_ids = [i[i!=0] - 1 for i in neighbor_pixel_ids]
+        # pixels in the background are filtered out (i!=0),
+        # and pixel indices start from 0 now to construct the sparse coefficient matrix
 
         # construct the system matrix A based on the list of neighbor pixel indices
-        num_neighbor_list = [len(i) for i in neighbor_pixel_ids]
+        num_neighbor_list = [len(i) for i in neighbor_pixel_ids]  # number of neighbour pixels for each pixel
         num_plane_equations = sum(num_neighbor_list)
 
         nz = data.n[data.mask, 2]

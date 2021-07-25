@@ -11,6 +11,7 @@ import pyvista as pv
 import os
 from orthographic_discrete_poisson import generate_dx_dy
 import time
+import pyamg
 
 
 class PerspectiveDiscretePoisson:
@@ -57,7 +58,8 @@ class PerspectiveDiscretePoisson:
 
         solver_start = time.time()
 
-        z_tilde = lsqr(A, b)[0]
+        # z_tilde = lsqr(A, b)[0]
+        z_tilde = pyamg.solve(A, b, tol=1e-17, verb=False)
         z = np.exp(z_tilde)
 
         solver_end = time.time()

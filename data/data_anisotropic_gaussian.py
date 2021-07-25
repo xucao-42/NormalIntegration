@@ -44,9 +44,8 @@ def anisotropic_gaussian_generator(H=150):
         zx += A[i] * np.exp(-0.5 * exp) * zxx
         zy += A[i] * np.exp(-0.5 * exp) * zyy
 
-    n = normalize_normal_map(np.concatenate((-zx[..., None],
-                        -zy[..., None],
-                        np.ones_like(zx)[..., None]), axis=-1))
+    n = normalize_normal_map(np.stack((-zx, -zy, np.ones_like(zx)), axis=-1))
+
     data.n = camera_to_object(n)
     data.n_vis = (n + 1) / 2
     data.depth_gt = -z
@@ -57,8 +56,5 @@ def anisotropic_gaussian_generator(H=150):
                                     (XX.flatten()[..., None] + 1),
                                     data.depth_gt.flatten()[..., None]], axis=-1)
     data.surf = pv.PolyData(data.vertices, data.facets)
-    data.fname = "ani_gaussian"
-    data.add_outlier()
-    data.add_noise()
-    data.add_outlier_on_noise_map(0.05)
+    data.fname = "anisotropic_gaussian"
     return data

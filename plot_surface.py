@@ -1,5 +1,5 @@
 import pyvista as pv
-pv.set_plot_theme("doc")
+pv.set_plot_theme("document")
 from glob import glob
 import os
 import time
@@ -13,7 +13,6 @@ if __name__ == "__main__":
             return string
         else:
             raise NotADirectoryError(string)
-
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', type=dir_path)
