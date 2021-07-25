@@ -44,7 +44,7 @@ class DataDiligent(Data):
             #                    [0, 3759.00543107133, 255.875000000000],
             #                    [0, 0, 1]], dtype=np.float64)
             if surface_name != "ball":
-                xyz = loadmat("data/diligent/{}PNG_D_XYZ.mat".format(surface_name))["XYZ"]
+                xyz = loadmat(os.path.join("data", "DiLiGenT", "{}PNG_D_XYZ.mat".format(surface_name)))["XYZ"]
                 self.depth_gt = xyz[..., 2]
                 temp = xyz[..., 1].copy()
                 xyz[..., 1] = xyz[..., 0].copy()
