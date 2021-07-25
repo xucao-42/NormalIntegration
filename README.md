@@ -20,9 +20,7 @@ This repository contains the official python implementation of the CVPR'21 norma
  ```
  
  ## Experiments on orthographic normal maps
- - run the demo code
- 
- ```python comparison_on_analytically_computed_orthographic_normal_maps.py```
+ - run ```python comparison_on_analytically_computed_orthographic_normal_maps.py```
  
  This script compares 5 methods on 3 orthographic normal maps: sphere, vase, and anisotropic Gaussian.
  The results will be saved in `results/#TIME`.
@@ -40,7 +38,7 @@ This repository contains the official python implementation of the CVPR'21 norma
 - Download the perspective normal maps from [here](https://drive.google.com/file/d/1EgC3x8daOWL4uQmc6c4nXVe4mdAMJVfg/view?usp=sharing) and extract them under the `data` folder. 
 These normal maps are picked out from [DiLiGenT dataset](https://sites.google.com/site/photometricstereodata/single?authuser=0).
 
-- run ```python comparison_on_perspective_diligent_normal_maps```
+- run ```python comparison_on_perspective_diligent_normal_maps.py```
 
 This script compares 6 perspective normal integration methods on 9 DiLiGenT objects. 
 
