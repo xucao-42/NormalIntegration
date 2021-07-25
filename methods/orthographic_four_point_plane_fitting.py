@@ -19,6 +19,7 @@ class OrthographicFourPoint:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_four_point_plane_fitting"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
         facet_H, facet_W = data.mask.shape
 

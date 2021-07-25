@@ -79,8 +79,12 @@ def construct_vertices_from_depth_map_and_mask(mask, depth_map, step_size=1):
     return vertices[mask]
 
 
-
 def map_depth_map_to_point_clouds(depth_map, mask, K):
+    # x
+    # |  z
+    # | /
+    # |/
+    # o ---y
     H, W = mask.shape
     yy, xx = np.meshgrid(range(W), range(H))
     xx = np.flip(xx, axis=0)
@@ -89,7 +93,7 @@ def map_depth_map_to_point_clouds(depth_map, mask, K):
     u[..., 1] = yy
     u[..., 2] = 1
     u = u[mask].T  # 3 x m
-    p_tilde = (np.linalg.inv(K) @ u).T
+    p_tilde = (np.linalg.inv(K) @ u).T  # m x 3
     return p_tilde * depth_map[mask, np.newaxis]
 
 

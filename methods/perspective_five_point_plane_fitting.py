@@ -21,6 +21,8 @@ class PerspectiveFivePointPlaneFitting:
     # o ---v
     def __init__(self, data):
         self.method_name = "perspective_five_point_plane_fitting"
+        print("running {}...".format(self.method_name))
+
         method_start = time.time()
 
         H, W = data.mask.shape
@@ -94,5 +96,4 @@ class PerspectiveFivePointPlaneFitting:
         self.vertices = p_tilde * x[:num_normals]
         self.facets = construct_facets_from_depth_map_mask(data.mask)
         self.surface = pv.PolyData(self.vertices, self.facets)
-
 

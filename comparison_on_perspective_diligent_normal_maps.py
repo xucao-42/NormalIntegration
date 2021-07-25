@@ -16,7 +16,7 @@ from data_diligent import DataDiligent
 class Setting:
     pass
 
-obj_name = [
+surface_name = [
             "bear",
             "buddha",
             "cat",
@@ -28,20 +28,23 @@ obj_name = [
             "reading"
             ]
 
-type = ["gt"]
+method_type = [
+        "gt",
+        # "ECCV2020",
+        # "l2",
+        ]
 
 setting = Setting()
 st_time = str(time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime(time.time())))
-for objname in product(obj_name, type):
+
+for objname in product(surface_name, method_type):
     print(objname)
-    if objname[1] != "gt":  # if gt normal is used, exclued boundary
+    if objname[1] != "gt":  # if gt normal is used as input, exclude boundary points
         obj = DataDiligent(*objname, exclude_bouday=0)
     else:
         obj = DataDiligent(*objname, exclude_bouday=1)
 
-    setting.save_dir = os.path.join("results", st_time, objname[0])
-    setting.add_outlier = 0
-    setting.add_noise = 0
+    setting.save_dir = os.path.join("results", st_time, objname[0] + "_" + objname[1])
     if not os.path.exists(setting.save_dir):
         os.makedirs(setting.save_dir)
     obj.save_n(setting.save_dir)
@@ -51,12 +54,12 @@ for objname in product(obj_name, type):
     setting.lambda_smooth = 1
 
     results = [
-               # PerspectiveFourPointPlaneFitting(obj),
+               PerspectiveFourPointPlaneFitting(obj),
                PerspectiveFivePointPlaneFitting(obj),
-               # PerspectiveDiscreteFunctional(obj),
-               # PerspectiveDiscretePoisson(obj),
-               # PerspectiveZhuCD(obj, setting),
-               # PerspectiveZhuSG(obj, setting)
+               PerspectiveDiscreteFunctional(obj),
+               PerspectiveDiscretePoisson(obj),
+               PerspectiveZhuCD(obj, setting),
+               PerspectiveZhuSG(obj, setting)
               ]
 
     absolute_difference_maps = []

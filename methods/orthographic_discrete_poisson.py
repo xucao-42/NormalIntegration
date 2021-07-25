@@ -78,6 +78,7 @@ class OrthographicPoisson:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_poisson"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
 
         # Eq. (4) in "Normal Integration: A Survey."

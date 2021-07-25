@@ -20,6 +20,7 @@ class OrthographicFivePoint:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_five_point_plane_fitting"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
         H, W = data.mask.shape
         vv, uu = np.meshgrid(range(W), range(H))

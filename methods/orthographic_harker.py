@@ -33,6 +33,7 @@ class OrthographicHarker:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_harker"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
 
         H, W = data.mask.shape

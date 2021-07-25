@@ -90,6 +90,7 @@ class OrthographicDiscreteFunctional:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_discrete_functional"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
         p = - data.n[data.mask, 0] / data.n[data.mask, 2]
         q = - data.n[data.mask, 1] / data.n[data.mask, 2]

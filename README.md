@@ -19,6 +19,7 @@ This repository contains the official python implementation of the CVPR'21 norma
  conda activate ni
  ```
  
+ ## Experiments on orthographic normal maps
  - run the demo code
  
  ```python comparison_on_analytically_computed_orthographic_normal_maps.py```
@@ -26,7 +27,7 @@ This repository contains the official python implementation of the CVPR'21 norma
  This script compares 5 methods on 3 orthographic normal maps: sphere, vase, and anisotropic Gaussian.
  The results will be saved in `results/#TIME`.
  
- You can optionally add Gaussion noise and/or outliers to the input normal maps by running
+ You can optionally add Gaussian noise and/or outliers to the input normal maps by running
 
   ```
   python comparison_on_analytically_computed_orthographic_normal_maps.py --noise 0.1
@@ -35,12 +36,30 @@ This repository contains the official python implementation of the CVPR'21 norma
   ```
   The number after `--noise` is the standard deviation of Gaussian noise added to all normal vectors; the number after `--outlier` is the percentage (0~1) of outliers in the normal map.
 
+## Experiments on perspective normal maps
+- Download the perspective normal maps from [here](https://drive.google.com/file/d/1EgC3x8daOWL4uQmc6c4nXVe4mdAMJVfg/view?usp=sharing) and extract them under the `data` folder. 
+These normal maps are picked out from [DiLiGenT dataset](https://sites.google.com/site/photometricstereodata/single?authuser=0).
+
+- run ```python comparison_on_perspective_diligent_normal_maps```
+
+This script compares 6 perspective normal integration methods on 9 DiLiGenT objects. 
+
+You might want to quickly check the results from a specific method on a specific object.
+To this end, comment out the object names defined in `surface_name` list at line 19 and methods defined in `results` list at line 56.
+
+As DiLiGenT contains normal maps estimated by different photometric stereo methods, 
+you can check the normal integration results on these normal maps by modifying the `method_type` list defined in line 31.
+For example, add "ECCV12Shi", "CVPR12Shi", etc. to the list.
+
+
+## Visualization
+
 - To visualize the estimated mesh surfaces, run
 
 ``` python plot_surface.py --path #YOUR_FOLDER_CONTAINING_PLY_FILES```
 
 A plot window of one surface will pop up, you can adjust the viewpoint that you would like to save as images.
-Then close the window, the images of all meshes viewed from the selected viewpoint will be saved in your input folder. 
+Then close the window, the images of all meshes viewed from the adjusted viewpoint will be saved in your input folder. 
 
 # Use Your Data
 

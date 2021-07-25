@@ -21,6 +21,7 @@ class OrthographicDiscreteGeometryProcessing:
     # o ---v
     def __init__(self, data):
         self.method_name = "orthographic_discrete_geometry_processing"
+        print("running {}...".format(self.method_name))
         method_start = time.time()
         facet_H, facet_W = data.mask.shape
 

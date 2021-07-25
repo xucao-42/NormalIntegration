@@ -24,7 +24,9 @@ class PerspectiveZhuCD:
     # |
     # o ---v
     def __init__(self, data, setting):
-        self.method_name = "perspective_zhu_and_smith_cd"
+        self.method_name = "perspective_zhu_and_smith_cd_lambda_smooth_{}".format(setting.lambda_smooth).replace(".", "_")
+        print("running {}...".format(self.method_name))
+
         method_start = time.time()
 
         num_pixel = np.sum(data.mask)
@@ -41,7 +43,7 @@ class PerspectiveZhuCD:
         u = (uu - ox)[data.mask]
         v = (vv - oy)[data.mask]
 
-        # search for nearest neighbour pixels for each pixel in region of integration
+        # search for nearest neighbour pixels for each pixel in region of integration, time consuming
         try:
             self.neighbor_pixel_idx = data.neighbor_pixel_idx
         except:
@@ -77,6 +79,7 @@ class PerspectiveZhuCD:
             row_idx = np.repeat(row_idx, setting.num_neighbor)
             col_idx = neighbor_pixel_idx.flatten()
             S = coo_matrix((a00, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
+
         self.S = S
 
         # Eq. (11) in "Least squares surface reconstruction on arbitrary domains."
@@ -115,7 +118,7 @@ class PerspectiveZhuCD:
         self.total_runtime = method_end - method_start
 
         self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
-        self.depth_map[data.mask] = np.squeeze(z)
+        self.depth_map[data.mask] = - np.squeeze(z)
 
         # construct a mesh from the depth map
         self.facets = construct_facets_from_depth_map_mask(data.mask)

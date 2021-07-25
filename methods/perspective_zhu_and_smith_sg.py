@@ -22,6 +22,8 @@ class PerspectiveZhuSG:
     def __init__(self, data, setting):
         self.method_name = "perspective_zhu_and_smith_sg_order_{0}_neighbor_{1}_lambda_smooth_{2}"\
             .format(setting.polynomial_order, setting.num_neighbor, setting.lambda_smooth).replace(".", "_")
+        print("running {}...".format(self.method_name))
+
         method_start = time.time()
 
         num_pixel = np.sum(data.mask)
@@ -38,7 +40,7 @@ class PerspectiveZhuSG:
         u = (uu - ox)[data.mask]
         v = (vv - oy)[data.mask]
 
-        # search for k nearest neighbour pixels for each pixel in region of integration
+        # search for k nearest neighbour pixels for each pixel in region of integration, time consuming
         try:
             self.neighbor_pixel_idx = data.neighbour_idx
         except:
@@ -75,11 +77,7 @@ class PerspectiveZhuSG:
         Dv = coo_matrix((a01, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
         # smoothness penalty in Sec.4
-        try:
-            S = data.S
-        except:
-            S = coo_matrix((a00, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
-        self.S = S
+        S = coo_matrix((a00, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
         # Eq. (11) in "Least squares surface reconstruction on arbitrary domains."
         U = diags(u)
