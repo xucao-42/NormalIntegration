@@ -153,7 +153,7 @@ if __name__ == "__main__":
     setting.lambda_smooth = 1
 
     data = data_loader(par.path)
-    result = PerspectiveZhuSG(data)
+    result = PerspectiveZhuSG(data, setting)
 
     file_dir = os.path.dirname(par.path)
 
