@@ -80,4 +80,15 @@ Check figure 1 in [our supplementary](https://openaccess.thecvf.com/content/CVPR
 If you are not aware of the camera matrix, you can treat a perspective normal map as an orthographic one, and call orthographic normal integration methods.
 There will be slight global distortion in the estimated surface.
 
+# Citation
+If you find our work useful in your research, please consider citing:
+```
+@inproceedings{cao2021normal,
+  title={Normal Integration via Inverse Plane Fitting With Minimum Point-to-Plane Distance},
+  author={Cao, Xu and Shi, Boxin and Okura, Fumio and Matsushita, Yasuyuki},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={2382--2391},
+  year={2021}
+}
+```
 
