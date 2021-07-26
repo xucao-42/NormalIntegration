@@ -1,3 +1,7 @@
+import sys
+sys.path.append("..")
+sys.path.append(".")
+
 import numpy as np
 from utils import *
 from scipy.sparse import coo_matrix, vstack
@@ -115,3 +119,54 @@ class OrthographicDiscreteGeometryProcessing:
 
         self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
         self.depth_map[data.mask] = facet_center_depth
+
+
+if __name__ == "__main__":
+    import argparse
+    from data.data_loader import data_loader
+    import cv2
+    import os
+    from utils import crop_a_set_of_images
+
+    def file_path(string):
+        if os.path.isfile(string):
+            return string
+        else:
+            raise FileNotFoundError(string)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--path', type=file_path)
+    parser.add_argument('-s', '--save_normal', type=bool, default=True)
+    par = parser.parse_args()
+
+    data = data_loader(par.path)
+    result = OrthographicDiscreteGeometryProcessing(data)
+
+    file_dir = os.path.dirname(par.path)
+
+    # save the estimated surface as a .ply file
+    result.surface.save(os.path.join(file_dir, "est_surface_{}.ply".format(result.method_name)), binary=True)
+
+    # save the input normal map
+    if par.save_normal:
+        cv2.imwrite(os.path.join(file_dir, "input_normal_map.png"), cv2.cvtColor(data.n_vis.astype(np.uint8), cv2.COLOR_BGR2RGB))
+
+    # save the image of estimated surface
+    img_path = os.path.join(file_dir, "est_surface_{}.png".format(result.method_name))
+    pv.set_plot_theme("document")
+    print("plotting surface ...")
+    camera_pose = result.surface.plot()
+    result.surface.plot(cpos=camera_pose,
+                          diffuse=0.5,
+                          ambient=0.5,
+                          specular=0.3,
+                          color="w",
+                          smooth_shading=False,
+                          show_scalar_bar=False,
+                          show_axes=False,
+                          eye_dome_lighting=True,
+                          off_screen=True,
+                          screenshot=img_path,
+                          window_size=(1024, 768))
+
+    crop_a_set_of_images(*[img_path])

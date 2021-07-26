@@ -63,3 +63,13 @@ class DataDiligent(Data):
             self.n_vis = (camera_to_object(self.n) + 1)/2
             self.n_vis[~self.mask] = 1
 
+
+if __name__ == '__main__':
+    # make sample mat and npz files
+    data = DataDiligent("bear", "gt")
+    file_to_save = {"mask": data.mask, "normal_map":data.n, "K":data.K}
+    import numpy as np
+    np.save("sample", file_to_save)
+
+    from scipy.io import savemat
+    savemat("sample.mat", file_to_save)

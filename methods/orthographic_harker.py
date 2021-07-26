@@ -1,3 +1,7 @@
+import sys
+sys.path.append("..")
+sys.path.append(".")
+
 from scipy.sparse import diags
 import numpy as np
 from utils import construct_facets_from_depth_map_mask, construct_vertices_from_depth_map_and_mask

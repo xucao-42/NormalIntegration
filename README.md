@@ -61,4 +61,23 @@ Then close the window, the images of all meshes viewed from the adjusted viewpoi
 
 # Use Your Data
 
-Under construction.
+Choose the method you would like to use from `methods` folder and provide a .mat or a .npy file path.
+For example:
+
+```
+python methods/perspective_five_point_plane_fitting.py --path data/sample_data/sample.npy
+```
+
+We recommend five point plane fitting in terms of the balance between robustness and computation time.
+You could also also try discrete Poisson, which is better at discontinuity preserving but not numerically stable to outliers (i.e. local spikes are likely to occur in the estimated surface).
+
+## Data Structure
+The .mat and .npy file should contain following key-value pairs:
+- `"normal_map"`: (H, W, 3) input normal map. This normal map should be defined in such a camera coordinate system: x-axis upwards, y-axis rightwards, and z-axis (the camera's principle axis) towards the scene. 
+Check figure 1 in [our supplementary](https://openaccess.thecvf.com/content/CVPR2021/supplemental/Cao_Normal_Integration_via_CVPR_2021_supplemental.pdf) for a visualization. One correction for figure 1: u-axis and v-axis in the pixel coordinates should be swapped. 
+- `"mask"`: (H, W) boolean mask indicating the region of interest to be integrated. Foreground should be 1; background should be 0.
+- `"K"` (optional): the (3, 3) camera intrinsic matrix. You should prepare this matrix if you choose perspective normal integration methods. 
+If you are not aware of the camera matrix, you can treat a perspective normal map as an orthographic one, and call orthographic normal integration methods.
+There will be slight global distortion in the estimated surface.
+
+
