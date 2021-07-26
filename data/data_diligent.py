@@ -6,10 +6,7 @@ import numpy as np
 from utils import construct_facets_from_depth_map_mask
 import pyvista as pv
 import os
-import matplotlib.pyplot as plt
 
-def ball_depth_generator(ball_mask):
-    pass
 
 class DataDiligent(Data):
     def __init__(self, surface_name, surface_method, exclude_bouday=True):
@@ -62,14 +59,3 @@ class DataDiligent(Data):
             self.curl = None
             self.n_vis = (camera_to_object(self.n) + 1)/2
             self.n_vis[~self.mask] = 1
-
-
-if __name__ == '__main__':
-    # make sample mat and npz files
-    data = DataDiligent("bear", "gt")
-    file_to_save = {"mask": data.mask, "normal_map":data.n, "K":data.K}
-    import numpy as np
-    np.save("sample", file_to_save)
-
-    from scipy.io import savemat
-    savemat("sample.mat", file_to_save)

@@ -110,10 +110,6 @@ class OrthographicPoisson:
         self.depth_map = np.ones_like(data.mask, dtype=np.float) * np.nan
         self.depth_map[data.mask] = z
 
-        import matplotlib.pyplot as plt
-        plt.imshow(self.depth_map)
-        plt.show()
-
         # create a mesh model from the depth map
         self.facets = construct_facets_from_depth_map_mask(data.mask)
         self.vertices = construct_vertices_from_depth_map_and_mask(data.mask, self.depth_map, data.step_size)

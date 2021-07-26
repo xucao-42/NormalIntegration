@@ -18,13 +18,6 @@ from data_diligent import DataDiligent
 class Setting:
     pass
 
-data = DataDiligent("bear", "gt")
-file_to_save = {"mask": data.mask, "normal_map": data.n, "K": data.K}
-import numpy as np
-np.savez("sample", file_to_save)
-
-from scipy.io import savemat
-savemat("sample.mat", file_to_save)
 
 surface_name = [
             "bear",
