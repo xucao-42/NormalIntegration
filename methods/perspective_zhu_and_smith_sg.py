@@ -144,6 +144,14 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--save_normal', type=bool, default=True)
     par = parser.parse_args()
 
+    class Setting():
+        pass
+
+    setting = Setting()
+    setting.polynomial_order = 3
+    setting.num_neighbor = 25
+    setting.lambda_smooth = 1
+
     data = data_loader(par.path)
     result = PerspectiveZhuSG(data)
 
