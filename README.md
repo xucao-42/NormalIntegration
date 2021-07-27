@@ -12,7 +12,7 @@ This repository contains the official python implementation of the CVPR'21 norma
 - "Least Squares Surface Reconstruction on Arbitrary Domains", Zhu et al., ECCV, 2020. [Official Matlab Code](https://github.com/waps101/LSQSurfaceReconstruction)
 - "Surface-from-Gradients: An Approach Based on Discrete Geometry Processing", Xie et al., CVPR, 2014.
 # Quick Start 
- - cd to this repository's root folder and reproduce our anaconda environment by running
+ cd to this repository's root folder and reproduce our anaconda environment by running
  
  ```
  conda env create -f=environment.yml 
@@ -20,7 +20,10 @@ This repository contains the official python implementation of the CVPR'21 norma
  ```
  
  ## Experiments on orthographic normal maps
- - run ```python comparison_on_analytically_computed_orthographic_normal_maps.py```
+ run 
+ ```
+ python comparison_on_analytically_computed_orthographic_normal_maps.py
+ ```
  
  This script compares 5 methods on 3 orthographic normal maps: sphere, vase, and anisotropic Gaussian.
  The results will be saved in `results/#TIME`.
@@ -38,7 +41,10 @@ This repository contains the official python implementation of the CVPR'21 norma
 - Download the perspective normal maps from [here](https://drive.google.com/file/d/13OpuH6MwM7-itXeLxO6WO8VhQTcKexHh/view?usp=sharing) and extract them under the `data` folder. 
 These normal maps are picked out from [DiLiGenT dataset](https://sites.google.com/site/photometricstereodata/single?authuser=0).
 
-- run ```python comparison_on_perspective_diligent_normal_maps.py```
+- run
+ ```
+ python comparison_on_perspective_diligent_normal_maps.py
+ ```
 
 This script compares 6 perspective normal integration methods on 9 DiLiGenT objects. 
 
@@ -52,7 +58,7 @@ For example, add "ECCV12Shi", "CVPR12Shi", etc. to the list.
 
 ## Visualization
 
-- To visualize the estimated mesh surfaces, run
+To visualize the estimated mesh surfaces, run
 
 ``` python plot_surface.py --path #YOUR_FOLDER_CONTAINING_PLY_FILES```
 
@@ -69,10 +75,10 @@ python methods/perspective_five_point_plane_fitting.py --path data/sample_data/s
 ```
 
 We recommend five point plane fitting in terms of the balance between robustness and computation time.
-You could also also try discrete Poisson, which is better at discontinuity preserving but not numerically stable to outliers (i.e. local spikes are likely to occur in the estimated surface).
+You could also try discrete Poisson, which is better at discontinuity preserving but not numerically stable to outliers (i.e. local spikes are likely to occur in the estimated surface).
 
 ## Data Structure
-The .mat and .npy file should contain following key-value pairs:
+The .mat or .npy file should contain following key-value pairs:
 - `"normal_map"`: (H, W, 3) input normal map. This normal map should be defined in such a camera coordinate system: x-axis upwards, y-axis rightwards, and z-axis (the camera's principle axis) towards the scene. 
 Check figure 1 in [our supplementary](https://openaccess.thecvf.com/content/CVPR2021/supplemental/Cao_Normal_Integration_via_CVPR_2021_supplemental.pdf) for a visualization. One correction for figure 1: u-axis and v-axis in the pixel coordinates should be swapped. 
 - `"mask"`: (H, W) boolean mask indicating the region of interest to be integrated. Foreground should be 1; background should be 0.
