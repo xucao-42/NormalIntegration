@@ -15,56 +15,40 @@ def generate_dx_dy(mask, step_size=1):
     # |
     # |
     # o ---> horizontal positive
-    all_depth_idx = np.zeros_like(mask, dtype=np.int)
-    all_depth_idx[mask] = np.arange(np.sum(mask))
-    num_depth = np.sum(mask)
-
-    num_neighbour_map = np.sum(np.concatenate([move_left(mask)[..., None],
-                                               move_right(mask)[..., None],
-                                               move_top(mask)[..., None],
-                                               move_bottom(mask)[..., None]], -1), axis=-1)
-    num_neighbour_map[~mask] = 0
+    pixel_idx = np.zeros_like(mask, dtype=int)
+    pixel_idx[mask] = np.arange(np.sum(mask))
+    num_pixel = np.sum(mask)
 
     has_left_mask = np.logical_and(move_right(mask), mask)
     has_right_mask = np.logical_and(move_left(mask), mask)
     has_bottom_mask = np.logical_and(move_top(mask), mask)
     has_top_mask = np.logical_and(move_bottom(mask), mask)
 
-    has_left_mask_left = np.pad(has_left_mask, ((0, 0), (0, 1)), "constant", constant_values=0)[:, 1:]
-    has_right_mask_right = np.pad(has_right_mask, ((0, 0), (1, 0)), "constant", constant_values=0)[:, :-1]
-    has_bottom_mask_bottom = np.pad(has_bottom_mask, ((1, 0), (0, 0)), "constant", constant_values=0)[:-1, :]
-    has_top_mask_top = np.pad(has_top_mask, ((0, 1), (0, 0)), "constant", constant_values=0)[1:, :]
-
-    num_has_left = np.sum(has_left_mask)
-    num_has_right = np.sum(has_right_mask)
-    num_has_top = np.sum(has_top_mask)
-    num_has_bottom = np.sum(has_bottom_mask)
-
-    data_term = [-1] * num_has_left + [1] * num_has_left
-    row_idx = all_depth_idx[has_left_mask]
+    data_term = [-1] * np.sum(has_left_mask) + [1] * np.sum(has_left_mask)
+    row_idx = pixel_idx[has_left_mask]   # only the pixels having left neighbors have [-1, 1] in that row
     row_idx = np.tile(row_idx, 2)
-    col_idx = np.concatenate((all_depth_idx[has_left_mask_left], all_depth_idx[has_left_mask]))
-    d_horizontal_neg = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_depth, num_depth))
+    col_idx = np.concatenate((pixel_idx[move_left(has_left_mask)], pixel_idx[has_left_mask]))
+    D_horizontal_neg = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
-    data_term = [-1] * num_has_right + [1] * num_has_right
-    row_idx = all_depth_idx[has_right_mask]
+    data_term = [-1] * np.sum(has_right_mask) + [1] * np.sum(has_right_mask)
+    row_idx = pixel_idx[has_right_mask]
     row_idx = np.tile(row_idx, 2)
-    col_idx = np.concatenate((all_depth_idx[has_right_mask], all_depth_idx[has_right_mask_right]))
-    d_horizontal_pos = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_depth, num_depth))
+    col_idx = np.concatenate((pixel_idx[has_right_mask], pixel_idx[move_right(has_right_mask)]))
+    D_horizontal_pos = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
-    data_term = [-1] * num_has_top + [1] * num_has_top
-    row_idx = all_depth_idx[has_top_mask]
+    data_term = [-1] * np.sum(has_top_mask) + [1] * np.sum(has_top_mask)
+    row_idx = pixel_idx[has_top_mask]
     row_idx = np.tile(row_idx, 2)
-    col_idx = np.concatenate((all_depth_idx[has_top_mask], all_depth_idx[has_top_mask_top]))
-    d_vertical_pos = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_depth, num_depth))
+    col_idx = np.concatenate((pixel_idx[has_top_mask], pixel_idx[move_top(has_top_mask)]))
+    D_vertical_pos = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
-    data_term = [-1] * num_has_bottom + [1] * num_has_bottom
-    row_idx = all_depth_idx[has_bottom_mask]
+    data_term = [-1] * np.sum(has_bottom_mask) + [1] * np.sum(has_bottom_mask)
+    row_idx = pixel_idx[has_bottom_mask]
     row_idx = np.tile(row_idx, 2)
-    col_idx = np.concatenate((all_depth_idx[has_bottom_mask_bottom], all_depth_idx[has_bottom_mask]))
-    d_vertical_neg = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_depth, num_depth))
+    col_idx = np.concatenate((pixel_idx[move_bottom(has_bottom_mask)], pixel_idx[has_bottom_mask]))
+    D_vertical_neg = coo_matrix((data_term, (row_idx, col_idx)), shape=(num_pixel, num_pixel))
 
-    return d_horizontal_pos / step_size, d_horizontal_neg / step_size, d_vertical_pos / step_size, d_vertical_neg / step_size
+    return D_horizontal_pos / step_size, D_horizontal_neg / step_size, D_vertical_pos / step_size, D_vertical_neg / step_size
 
 
 class OrthographicPoisson:
