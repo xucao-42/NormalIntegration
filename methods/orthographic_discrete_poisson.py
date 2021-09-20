@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 sys.path.append(".")
 
-from scipy.sparse.linalg import lsqr
+from scipy.sparse.linalg import lsqr, cg
 from utils import *
 import pyvista as pv
 import time
@@ -82,7 +82,8 @@ class OrthographicPoisson:
         # There should be faster solvers.
         solver_start = time.time()
         # z = lsqr(A, b, atol=1e-17, btol=1e-17)[0]
-        z = pyamg.solve(A, b, tol=1e-17, verb=False)
+        z, _ = cg(A, b, maxiter=1000, tol=1e-9)
+        # z = pyamg.solve(A, b, tol=1e-17, verb=False)
         solver_end = time.time()
 
         self.solver_runtime = solver_end - solver_start

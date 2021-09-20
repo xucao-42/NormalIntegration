@@ -6,7 +6,7 @@ import numpy as np
 from utils import *
 from scipy.sparse import coo_matrix, vstack
 import pyvista as pv
-from scipy.sparse.linalg import lsqr
+from scipy.sparse.linalg import lsqr, cg
 import time
 
 class OrthographicDiscreteGeometryProcessing:
@@ -100,7 +100,8 @@ class OrthographicDiscreteGeometryProcessing:
                             projection_top_right)) * data.step_size
 
         solver_start = time.time()
-        z = lsqr(A, b, atol=1e-17, btol=1e-17)[0]
+        # z = lsqr(A, b, atol=1e-17, btol=1e-17)[0]
+        z, _ = cg(A.T @ A, A.T @ b, maxiter=1000, tol=1e-9)
         solver_end = time.time()
 
         self.solver_runtime = solver_end - solver_start

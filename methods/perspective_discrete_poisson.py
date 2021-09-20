@@ -9,7 +9,7 @@ sys.path.append(".")
 
 import numpy as np
 from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import lsqr, spsolve
+from scipy.sparse.linalg import lsqr, spsolve, cg
 from utils import construct_facets_from_depth_map_mask, map_depth_map_to_point_clouds
 import pyvista as pv
 import os
@@ -64,7 +64,9 @@ class PerspectiveDiscretePoisson:
         solver_start = time.time()
 
         # z_tilde = lsqr(A, b)[0]
-        z_tilde = pyamg.solve(A, b, tol=1e-17, verb=False)
+        # z_tilde = pyamg.solve(A, b, tol=1e-17, verb=False)
+        z_tilde, _ = cg(A, b, maxiter=1000, tol=1e-9)
+
         z = np.exp(z_tilde)
 
         solver_end = time.time()

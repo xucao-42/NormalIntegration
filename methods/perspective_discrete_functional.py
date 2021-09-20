@@ -3,7 +3,7 @@ sys.path.append("..")
 sys.path.append(".")
 
 import numpy as np
-from scipy.sparse.linalg import lsqr
+from scipy.sparse.linalg import lsqr, cg
 from utils import construct_facets_from_depth_map_mask, map_depth_map_to_point_clouds
 import pyvista as pv
 from orthographic_discrete_functional import generate_dx_dy_wb
@@ -55,7 +55,9 @@ class PerspectiveDiscreteFunctional:
 
         solver_start = time.time()
 
-        z_tilde = lsqr(A, b)[0]
+        # z_tilde = lsqr(A, b)[0]
+        z_tilde, _ = cg(A.T @ A, A.T @ b, maxiter=1000, tol=1e-9)
+
         # Eq. (13) in "Normal Integration: A Survey."
         z = np.exp(z_tilde)
 
