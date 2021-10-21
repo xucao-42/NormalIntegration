@@ -75,7 +75,6 @@ python methods/perspective_five_point_plane_fitting.py --path data/sample_data/s
 ```
 
 We recommend five point plane fitting in terms of the balance between robustness and computation time.
-You could also try discrete Poisson, which is better at discontinuity preserving but not numerically stable to outliers (i.e. local spikes are likely to occur in the estimated surface).
 
 ## Data Structure
 The .mat or .npy file should contain following key-value pairs:
