@@ -127,13 +127,7 @@ if __name__ == "__main__":
     from data.data_loader import data_loader
     import cv2
     import os
-    from utils import crop_a_set_of_images
-
-    def file_path(string):
-        if os.path.isfile(string):
-            return string
-        else:
-            raise FileNotFoundError(string)
+    from utils import crop_a_set_of_images, file_path
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', type=file_path)
@@ -149,7 +143,7 @@ if __name__ == "__main__":
     result.surface.save(os.path.join(file_dir, "est_surface_{}.ply".format(result.method_name)), binary=True)
 
     # save the input normal map
-    if par.save_normal:
+    if par.save_normal and os.path.isfile(par.path):
         cv2.imwrite(os.path.join(file_dir, "input_normal_map.png"), cv2.cvtColor(data.n_vis.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     # save the image of estimated surface

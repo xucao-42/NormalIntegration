@@ -44,6 +44,12 @@ def normalize_normal_map(N):
     N = np.reshape(N, (H, W, C))
     return N
 
+def file_path(string):
+    if os.path.isfile(string) or os.path.isdir(string):
+        return string
+    else:
+        raise FileNotFoundError(string)
+
 
 def construct_facets_from_depth_map_mask(mask):
     idx = np.zeros_like(mask, dtype=np.int)
