@@ -55,7 +55,7 @@ def data_loader(file_path):
         data.mask = mask
 
         if os.path.exists(os.path.join(file_path, "K.txt")):
-            data.K =np.loadtxt(os.path.join(file_path, "K.txt"))
+            data.K = np.loadtxt(os.path.join(file_path, "K.txt"))
 
     data.n_vis = (camera_to_object(data.n) + 1) / 2
     data.n_vis[~data.mask] = 1
