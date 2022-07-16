@@ -19,6 +19,7 @@ def data_loader(file_path):
             data.mask = data.mask[..., 0]
 
         data.n = f.item().get("normal_map")
+        data.n = camera_to_object(data.n)
 
         try:
             data.K = f.item().get("K")
@@ -33,6 +34,7 @@ def data_loader(file_path):
             data.mask = data.mask[..., 0]
 
         data.n = f["normal_map"]
+        data.n = camera_to_object(data.n)
 
         try:
             data.K = f["K"]

@@ -4,6 +4,10 @@
 
 CVPR 2021
 
+**2022.07 UPDATE: We have developed a new method substituting this method while allowing discontinuity preservation.
+See [this repository](https://github.com/hoshino042/bilateral_normal_integration).
+We believe there is no reason to use this repository any more in practice given the newly developed method.**
+
 ![](teaser.png)
 
 This repository contains the official python implementation of the CVPR'21 normal integration paper, along with our python implementations based on the following papers:

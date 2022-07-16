@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', type=dir_path)
+    parser.add_argument('-s', '--show_edge', type=bool, default=False)
 
     par = parser.parse_args()
 
@@ -39,7 +40,7 @@ if __name__ == "__main__":
                   show_scalar_bar=False,
                   show_axes=False,
                   eye_dome_lighting=True,
-                  # show_edges=True,
+                  show_edges=par.show_edge,
                   off_screen=True,
                   screenshot=os.path.join(save_dir, "{}.png".format(fname)),
                   window_size=(1024, 768))
